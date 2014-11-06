@@ -20,7 +20,7 @@ Shift.prototype.update = function() {
   
 };
 
-Shift.prototype.shiftArray = [];
+Shift.shiftArray = [];
 
 Shift.prototype.createSprite = function() {
   var bmd = this.ctx.game.add.bitmapData(this.position/2 * SHIFT_SIZE, SHIFT_HEIGHT);
@@ -49,34 +49,34 @@ Shift.prototype.xpos = function() {
 
 //takes a shift, adds it to the shiftgrid
 Shift.prototype.addShiftGrid = function() {
-  var position = this.checkGrid(this);
+  var position = Shift.checkGrid(this);
   if (position == -1) {
-    this.concatArr(this.prototype.shiftArray, this);
-    return this.prototype.shiftArray.length;
-  }
+    Shift.concatArr(Shift.shiftArray, this);
+    return Shift.shiftArray.length;
+  Shift}
   else {
-    this.prototype.ShiftArray[position] = this.addShiftArray(this.prototype.ShiftArray[position], this)
+    Shift.ShiftArray[position] = Shift.addShiftArray(Shift.ShiftArray[position], this)
   }
   return position;
 };
 
 //Goes through the shift grid and returns the vertical array index the shift should be in (-1 if it cant fit)
-Shift.prototype.checkGrid = function(shift) {
- if (this.prototype.shiftArray.length == 0) return -1;
- return this.prototype.shiftArray.findIndex(function(x) {
+Shift.checkGrid = function(shift) {
+ if (Shift.shiftArray.length == 0) return -1;
+ return Shift.shiftArray.findIndex(function(x) {
  x.slice(shift.position, shift.position + shift.length).every(function(i) { i == 0 })
  }.first);
 }
 
 //creates a new empty single dimension array, then puts the shifts into it
-Shift.prototype.concatArr = function(arr, shift) {
+Shift.concatArr = function(arr, shift) {
   var empty = Array.apply(null, new Array(64)).map(Number.prototype.valueOf,0);
-  this.addShiftArray(empty, shift)
+  Shift.addShiftArray(empty, shift)
   arr.push(empty);
 };
 
 // Given a single dimension array, go through it and add the shifts id to the hours time position
-Shift.prototype.addShiftArray = function(arr, shift) {
+Shift.addShiftArray = function(arr, shift) {
   for (var i = shift.position; i < shift.position + shift.length; i++)
   {
     arr[i] = shift.id;
