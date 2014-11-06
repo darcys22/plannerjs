@@ -20,6 +20,8 @@ Shift.prototype.update = function() {
   
 };
 
+Shift.prototype.shiftArray = [];
+
 Shift.prototype.createSprite = function() {
   var bmd = this.ctx.game.add.bitmapData(this.position/2 * SHIFT_SIZE, SHIFT_HEIGHT);
   bmd.context.fillStyle = 'rgba(255, 0, 0, 0.3)';
@@ -49,19 +51,19 @@ Shift.prototype.xpos = function() {
 Shift.prototype.addShiftGrid = function() {
   var position = this.checkGrid(this);
   if (position == -1) {
-    this.concatArr(this.ctx.shiftGrid, this);
-    return this.ctx.shiftGrid.length;
+    this.concatArr(this.prototype.shiftArray, this);
+    return this.prototype.shiftArray.length;
   }
   else {
-    this.ctx.ShiftGrid[position] = this.ctx.addShiftArray(this.ctx.ShiftGrid[position], this)
+    this.prototype.ShiftArray[position] = this.addShiftArray(this.prototype.ShiftArray[position], this)
   }
   return position;
 };
 
 //Goes through the shift grid and returns the vertical array index the shift should be in (-1 if it cant fit)
 Shift.prototype.checkGrid = function(shift) {
- if (this.ctx.shiftGrid.length == 0) return -1;
- return this.ctx.shiftGrid.findIndex(function(x) {
+ if (this.prototype.shiftArray.length == 0) return -1;
+ return this.prototype.shiftArray.findIndex(function(x) {
  x.slice(shift.position, shift.position + shift.length).every(function(i) { i == 0 })
  }.first);
 }
@@ -70,7 +72,6 @@ Shift.prototype.checkGrid = function(shift) {
 Shift.prototype.concatArr = function(arr, shift) {
   var empty = Array.apply(null, new Array(64)).map(Number.prototype.valueOf,0);
   this.addShiftArray(empty, shift)
-  debugger;
   arr.push(empty);
 };
 
