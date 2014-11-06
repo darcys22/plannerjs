@@ -16,15 +16,15 @@ window.onload = function () {
 },{"./states/boot":3,"./states/play":4,"./states/preload":5}],2:[function(require,module,exports){
 'use strict';
 
-var Shift = function() {
-  var idCount = 1;
-  return function (ctx, hour) {
+var Shift = function(ctx, hour) {
+  //var idCount = 1;
+  //return function (ctx, hour) {
     this.position = hour*2;
     this.length = 8;
-    this.id = idCount++;
-    this.height = this.addShiftGrid();
+    this.id = 1 //idCount++;
     this.ctx = ctx;
-  };  
+    this.height = this.addShiftGrid();
+  //};  
 };
 
 Shift.prototype = Object.create(Phaser.Sprite.prototype);
@@ -74,10 +74,19 @@ Shift.prototype.addShiftGrid = function() {
   return position;
 };
 
+//Goes through the shift grid and returns the vertical array index the shift should be in (-1 if it cant fit)
+Shift.prototype.checkGrid = function(shift) {
+ if (this.ctx.shiftGrid.length == 0) return -1;
+ return this.ctx.shiftGrid.findIndex(function(x) {
+ x.slice(shift.position, shift.position + shift.length).every(function(i) { i == 0 })
+ }.first);
+}
+
 //creates a new empty single dimension array, then puts the shifts into it
 Shift.prototype.concatArr = function(arr, shift) {
   var empty = Array.apply(null, new Array(64)).map(Number.prototype.valueOf,0);
   this.addShiftArray(empty, shift)
+  debugger;
   arr.push(empty);
 };
 
@@ -137,7 +146,7 @@ var SHIFT_HEIGHT = 40;
       this.buttons();
     },
     update: function() {
-      if (game.input.mousePointer.justReleased()) 
+      if (this.game.input.mousePointer.justReleased()) 
         {
           this.shiftAdd(null,null);
         }
@@ -146,17 +155,17 @@ var SHIFT_HEIGHT = 40;
 //Custom Functions
     shiftAdd:  function(sprite, pointer) {
       var hour = Math.floor(this.game.input.x/71);
-      var shift = new Shift(hour);
+      var shift = new Shift(this, hour);
       this.shiftGrid.add(shift);
     },
 
     buttons: function() {
       var date = "February 1st 2014"
       var style = { font: "40px Arial", fill: "#9CA2B8" };
-      var tdate = game.add.text(10, 10, date, style);
+      var tdate = this.game.add.text(10, 10, date, style);
 
-      previus = this.game.add.button(10, 65, 'previous');
-      clear = this.game.add.button(10, 110, 'clear', this.clearBut);
+      this.previous = this.game.add.button(10, 65, 'previous');
+      this.clear = this.game.add.button(10, 110, 'clear', this.clearBut);
     },
 
     clearBut: function() {
@@ -170,7 +179,7 @@ var SHIFT_HEIGHT = 40;
       rlrbdr.ctx.lineWidth=5;
       rlrbdr.ctx.beginPath();
       rlrbdr.ctx.moveTo(0,0);
-      rlrbdr.ctx.lineTo(game.width,0);
+      rlrbdr.ctx.lineTo(this.game.width,0);
       rlrbdr.ctx.stroke();
 
       this.floor = this.game.add.sprite(0,this.game.height-50,rlrbdr);
@@ -195,8 +204,8 @@ Preload.prototype = {
     this.load.onLoadComplete.addOnce(this.onLoadComplete, this);
     this.load.setPreloadSprite(this.asset);
 
-  this.load.image('clear','assets/clear.png');
-  this.load.image('previous','assets/previous.png');
+    this.load.image('clear','assets/clear.png');
+    this.load.image('previous','assets/previous.png');
 
   },
   create: function() {

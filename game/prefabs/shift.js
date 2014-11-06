@@ -1,14 +1,14 @@
 'use strict';
 
-var Shift = function() {
-  var idCount = 1;
-  return function (ctx, hour) {
+var Shift = function(ctx, hour) {
+  //var idCount = 1;
+  //return function (ctx, hour) {
     this.position = hour*2;
     this.length = 8;
-    this.id = idCount++;
-    this.height = this.addShiftGrid();
+    this.id = 1 //idCount++;
     this.ctx = ctx;
-  };  
+    this.height = this.addShiftGrid();
+  //};  
 };
 
 Shift.prototype = Object.create(Phaser.Sprite.prototype);
@@ -58,10 +58,19 @@ Shift.prototype.addShiftGrid = function() {
   return position;
 };
 
+//Goes through the shift grid and returns the vertical array index the shift should be in (-1 if it cant fit)
+Shift.prototype.checkGrid = function(shift) {
+ if (this.ctx.shiftGrid.length == 0) return -1;
+ return this.ctx.shiftGrid.findIndex(function(x) {
+ x.slice(shift.position, shift.position + shift.length).every(function(i) { i == 0 })
+ }.first);
+}
+
 //creates a new empty single dimension array, then puts the shifts into it
 Shift.prototype.concatArr = function(arr, shift) {
   var empty = Array.apply(null, new Array(64)).map(Number.prototype.valueOf,0);
   this.addShiftArray(empty, shift)
+  debugger;
   arr.push(empty);
 };
 

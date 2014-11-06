@@ -16,7 +16,7 @@ var SHIFT_HEIGHT = 40;
       this.buttons();
     },
     update: function() {
-      if (game.input.mousePointer.justReleased()) 
+      if (this.game.input.mousePointer.justReleased()) 
         {
           this.shiftAdd(null,null);
         }
@@ -25,17 +25,17 @@ var SHIFT_HEIGHT = 40;
 //Custom Functions
     shiftAdd:  function(sprite, pointer) {
       var hour = Math.floor(this.game.input.x/71);
-      var shift = new Shift(hour);
+      var shift = new Shift(this, hour);
       this.shiftGrid.add(shift);
     },
 
     buttons: function() {
       var date = "February 1st 2014"
       var style = { font: "40px Arial", fill: "#9CA2B8" };
-      var tdate = game.add.text(10, 10, date, style);
+      var tdate = this.game.add.text(10, 10, date, style);
 
-      previus = this.game.add.button(10, 65, 'previous');
-      clear = this.game.add.button(10, 110, 'clear', this.clearBut);
+      this.previous = this.game.add.button(10, 65, 'previous');
+      this.clear = this.game.add.button(10, 110, 'clear', this.clearBut);
     },
 
     clearBut: function() {
@@ -49,7 +49,7 @@ var SHIFT_HEIGHT = 40;
       rlrbdr.ctx.lineWidth=5;
       rlrbdr.ctx.beginPath();
       rlrbdr.ctx.moveTo(0,0);
-      rlrbdr.ctx.lineTo(game.width,0);
+      rlrbdr.ctx.lineTo(this.game.width,0);
       rlrbdr.ctx.stroke();
 
       this.floor = this.game.add.sprite(0,this.game.height-50,rlrbdr);
