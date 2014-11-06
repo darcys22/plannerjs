@@ -7,15 +7,99 @@ window.onload = function () {
 
   // Game States
   game.state.add('boot', require('./states/boot'));
-  game.state.add('gameover', require('./states/gameover'));
-  game.state.add('menu', require('./states/menu'));
   game.state.add('play', require('./states/play'));
   game.state.add('preload', require('./states/preload'));
   
 
   game.state.start('boot');
 };
-},{"./states/boot":2,"./states/gameover":3,"./states/menu":4,"./states/play":5,"./states/preload":6}],2:[function(require,module,exports){
+},{"./states/boot":3,"./states/play":4,"./states/preload":5}],2:[function(require,module,exports){
+'use strict';
+
+var Shift = function() {
+  var idCount = 1;
+  return function (ctx, hour) {
+    this.position = hour*2;
+    this.length = 8;
+    this.id = idCount++;
+    this.height = this.addShiftGrid();
+    this.ctx = ctx;
+  };  
+};
+
+Shift.prototype = Object.create(Phaser.Sprite.prototype);
+Shift.prototype.constructor = Shift;
+
+Shift.prototype.update = function() {
+  
+  // write your prefab's specific update code here
+  
+};
+
+Shift.prototype.createSprite = function() {
+  var bmd = this.ctx.game.add.bitmapData(this.position/2 * SHIFT_SIZE, SHIFT_HEIGHT);
+  bmd.context.fillStyle = 'rgba(255, 0, 0, 0.3)';
+  helpers.roundRect(bmd.ctx, 0, 0, bmd.width, bmd.height, 5, true);
+  Phaser.Sprite.call(this, this.ctx.game, this.xpos,this.ypos,bmd);
+
+  //this.inputEnabled = true;
+  //this.input.enableDrag();
+  //this.input.enableSnap(SHIFT_SIZE/2, SHIFT_HEIGHT,true,false);
+
+
+  //this.events.onDragStart.add(this.startDrag, this);
+  //this.events.onDragStop.add(this.stopDrag, this);
+
+  var speed = (this.ctx.game.height - 90 - this.y)*2;
+  this.boxTween = this.ctx.game.add.tween(this).to({ y: this.ypos }, speed, Phaser.Easing.Linear.None, true)
+};
+
+Shift.prototype.ypos = function() {
+  return game.height - GameState.prototype.floor.height - (GameState.prototype.SHIFT_HEIGHT * this.height)
+};
+Shift.prototype.xpos = function() {
+  return (this.position - GameState.prototype.scrollStart) * (GameState.prototype.SHIFT_SIZE / 2)
+};
+
+//takes a shift, adds it to the shiftgrid
+Shift.prototype.addShiftGrid = function() {
+  var position = this.checkGrid(this);
+  if (position == -1) {
+    this.concatArr(this.ctx.shiftGrid, this);
+    return this.ctx.shiftGrid.length;
+  }
+  else {
+    this.ctx.ShiftGrid[position] = this.ctx.addShiftArray(this.ctx.ShiftGrid[position], this)
+  }
+  return position;
+};
+
+//creates a new empty single dimension array, then puts the shifts into it
+Shift.prototype.concatArr = function(arr, shift) {
+  var empty = Array.apply(null, new Array(64)).map(Number.prototype.valueOf,0);
+  this.addShiftArray(empty, shift)
+  arr.push(empty);
+};
+
+// Given a single dimension array, go through it and add the shifts id to the hours time position
+Shift.prototype.addShiftArray = function(arr, shift) {
+  for (var i = shift.position; i < shift.position + shift.length; i++)
+  {
+    arr[i] = shift.id;
+  }
+  return arr;
+};
+
+Shift.prototype.startDrag = function(sprite, pointer) {
+};
+Shift.prototype.stopDrag = function(sprite, pointer) {
+  this.ctx.shiftAdd(sprite,pointer);
+  sprite.destroy(true);
+};
+
+module.exports = Shift;
+
+},{}],3:[function(require,module,exports){
 
 'use strict';
 
@@ -34,94 +118,68 @@ Boot.prototype = {
 
 module.exports = Boot;
 
-},{}],3:[function(require,module,exports){
-
-'use strict';
-function GameOver() {}
-
-GameOver.prototype = {
-  preload: function () {
-
-  },
-  create: function () {
-    var style = { font: '65px Arial', fill: '#ffffff', align: 'center'};
-    this.titleText = this.game.add.text(this.game.world.centerX,100, 'Game Over!', style);
-    this.titleText.anchor.setTo(0.5, 0.5);
-
-    this.congratsText = this.game.add.text(this.game.world.centerX, 200, 'You Win!', { font: '32px Arial', fill: '#ffffff', align: 'center'});
-    this.congratsText.anchor.setTo(0.5, 0.5);
-
-    this.instructionText = this.game.add.text(this.game.world.centerX, 300, 'Click To Play Again', { font: '16px Arial', fill: '#ffffff', align: 'center'});
-    this.instructionText.anchor.setTo(0.5, 0.5);
-  },
-  update: function () {
-    if(this.game.input.activePointer.justPressed()) {
-      this.game.state.start('play');
-    }
-  }
-};
-module.exports = GameOver;
-
 },{}],4:[function(require,module,exports){
 
-'use strict';
-function Menu() {}
-
-Menu.prototype = {
-  preload: function() {
-
-  },
-  create: function() {
-    var style = { font: '65px Arial', fill: '#ffffff', align: 'center'};
-    this.sprite = this.game.add.sprite(this.game.world.centerX, 138, 'yeoman');
-    this.sprite.anchor.setTo(0.5, 0.5);
-
-    this.titleText = this.game.add.text(this.game.world.centerX, 300, '\'Allo, \'Allo!', style);
-    this.titleText.anchor.setTo(0.5, 0.5);
-
-    this.instructionsText = this.game.add.text(this.game.world.centerX, 400, 'Click anywhere to play "Click The Yeoman Logo"', { font: '16px Arial', fill: '#ffffff', align: 'center'});
-    this.instructionsText.anchor.setTo(0.5, 0.5);
-
-    this.sprite.angle = -20;
-    this.game.add.tween(this.sprite).to({angle: 20}, 1000, Phaser.Easing.Linear.NONE, true, 0, 1000, true);
-  },
-  update: function() {
-    if(this.game.input.activePointer.justPressed()) {
-      this.game.state.start('play');
-    }
-  }
-};
-
-module.exports = Menu;
-
-},{}],5:[function(require,module,exports){
-
   'use strict';
+var Shift = require('../prefabs/shift');
+
+var SHIFT_SIZE = 71;
+var SHIFT_HEIGHT = 40;
+
   function Play() {}
   Play.prototype = {
     create: function() {
-      this.game.physics.startSystem(Phaser.Physics.ARCADE);
-      this.sprite = this.game.add.sprite(this.game.width/2, this.game.height/2, 'yeoman');
-      this.sprite.inputEnabled = true;
-      
-      this.game.physics.arcade.enable(this.sprite);
-      this.sprite.body.collideWorldBounds = true;
-      this.sprite.body.bounce.setTo(1,1);
-      this.sprite.body.velocity.x = this.game.rnd.integerInRange(-500,500);
-      this.sprite.body.velocity.y = this.game.rnd.integerInRange(-500,500);
+      this.game.stage.backgroundColor = 0x333333;
+      this.shiftGrid = this.game.add.group();
+      this.input.justReleasedRate = 25;
 
-      this.sprite.events.onInputDown.add(this.clickListener, this);
+      this.ruler();
+      this.buttons();
     },
     update: function() {
-
+      if (game.input.mousePointer.justReleased()) 
+        {
+          this.shiftAdd(null,null);
+        }
     },
-    clickListener: function() {
-      this.game.state.start('gameover');
+
+//Custom Functions
+    shiftAdd:  function(sprite, pointer) {
+      var hour = Math.floor(this.game.input.x/71);
+      var shift = new Shift(hour);
+      this.shiftGrid.add(shift);
+    },
+
+    buttons: function() {
+      var date = "February 1st 2014"
+      var style = { font: "40px Arial", fill: "#9CA2B8" };
+      var tdate = game.add.text(10, 10, date, style);
+
+      previus = this.game.add.button(10, 65, 'previous');
+      clear = this.game.add.button(10, 110, 'clear', this.clearBut);
+    },
+
+    clearBut: function() {
+      this.shiftGrid.removeAll()
+    },
+
+    ruler: function() {
+      var rlrbdr = this.game.add.bitmapData(this.game.width, 50);
+      //rlrbdr context is a html5 canvas context so what you draw with that yeah
+      rlrbdr.ctx.strokeStyle = "#9CA2B8";
+      rlrbdr.ctx.lineWidth=5;
+      rlrbdr.ctx.beginPath();
+      rlrbdr.ctx.moveTo(0,0);
+      rlrbdr.ctx.lineTo(game.width,0);
+      rlrbdr.ctx.stroke();
+
+      this.floor = this.game.add.sprite(0,this.game.height-50,rlrbdr);
     }
   };
   
   module.exports = Play;
-},{}],6:[function(require,module,exports){
+
+},{"../prefabs/shift":2}],5:[function(require,module,exports){
 
 'use strict';
 function Preload() {
@@ -136,7 +194,9 @@ Preload.prototype = {
 
     this.load.onLoadComplete.addOnce(this.onLoadComplete, this);
     this.load.setPreloadSprite(this.asset);
-    this.load.image('yeoman', 'assets/yeoman-logo.png');
+
+  this.load.image('clear','assets/clear.png');
+  this.load.image('previous','assets/previous.png');
 
   },
   create: function() {
@@ -144,7 +204,7 @@ Preload.prototype = {
   },
   update: function() {
     if(!!this.ready) {
-      this.game.state.start('menu');
+      this.game.state.start('play');
     }
   },
   onLoadComplete: function() {

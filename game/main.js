@@ -1,7 +1,5 @@
 'use strict';
 
-var helpers = require('./helpers');
-
 //global variables
 window.onload = function () {
   var game = new Phaser.Game(1136, 640, Phaser.AUTO, 'planner');
