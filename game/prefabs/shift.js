@@ -23,7 +23,7 @@ Shift.prototype.update = function() {
 Shift.prototype.createSprite = function() {
   var bmd = this.ctx.game.add.bitmapData(this.position/2 * SHIFT_SIZE, SHIFT_HEIGHT);
   bmd.context.fillStyle = 'rgba(255, 0, 0, 0.3)';
-  roundRect(bmd.ctx, 0, 0, bmd.width, bmd.height, 5, true);
+  helpers.roundRect(bmd.ctx, 0, 0, bmd.width, bmd.height, 5, true);
   Phaser.Sprite.call(this, this.ctx.game, this.xpos,this.ypos,bmd);
 
   //this.inputEnabled = true;
