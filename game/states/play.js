@@ -1,9 +1,7 @@
 
   'use strict';
 var Shift = require('../prefabs/shift');
-
-var SHIFT_SIZE = 71;
-var SHIFT_HEIGHT = 40;
+var Helpers = require('../prefabs/helpers');
 
   function Play() {}
   Play.prototype = {

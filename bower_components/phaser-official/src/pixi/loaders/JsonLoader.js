@@ -14,7 +14,6 @@
  * @param crossorigin {Boolean} Whether requests should be treated as crossorigin
  */
 PIXI.JsonLoader = function (url, crossorigin) {
-    PIXI.EventTarget.call(this);
 
     /**
      * The url of the bitmap font data
@@ -55,95 +54,113 @@ PIXI.JsonLoader = function (url, crossorigin) {
 // constructor
 PIXI.JsonLoader.prototype.constructor = PIXI.JsonLoader;
 
+PIXI.EventTarget.mixin(PIXI.JsonLoader.prototype);
+
 /**
  * Loads the JSON data
  *
  * @method load
  */
 PIXI.JsonLoader.prototype.load = function () {
-    this.ajaxRequest = new PIXI.AjaxRequest(this.crossorigin);
-    var scope = this;
-    this.ajaxRequest.onreadystatechange = function () {
-        scope.onJSONLoaded();
-    };
 
-    this.ajaxRequest.open('GET', this.url, true);
-    if (this.ajaxRequest.overrideMimeType) this.ajaxRequest.overrideMimeType('application/json');
-    this.ajaxRequest.send(null);
+    if(window.XDomainRequest && this.crossorigin)
+    {
+        this.ajaxRequest = new window.XDomainRequest();
+
+        // XDomainRequest has a few quirks. Occasionally it will abort requests
+        // A way to avoid this is to make sure ALL callbacks are set even if not used
+        // More info here: http://stackoverflow.com/questions/15786966/xdomainrequest-aborts-post-on-ie-9
+        this.ajaxRequest.timeout = 3000;
+
+        this.ajaxRequest.onerror = this.onError.bind(this);
+
+        this.ajaxRequest.ontimeout = this.onError.bind(this);
+
+        this.ajaxRequest.onprogress = function() {};
+
+    }
+    else if (window.XMLHttpRequest)
+    {
+        this.ajaxRequest = new window.XMLHttpRequest();
+    }
+    else
+    {
+        this.ajaxRequest = new window.ActiveXObject('Microsoft.XMLHTTP');
+    }
+
+    this.ajaxRequest.onload = this.onJSONLoaded.bind(this);
+
+    this.ajaxRequest.open('GET',this.url,true);
+
+    this.ajaxRequest.send();
 };
 
 /**
- * Invoke when JSON file is loaded
+ * Invoked when the JSON file is loaded.
  *
  * @method onJSONLoaded
  * @private
  */
 PIXI.JsonLoader.prototype.onJSONLoaded = function () {
-    if (this.ajaxRequest.readyState === 4) {
-        if (this.ajaxRequest.status === 200 || window.location.protocol.indexOf('http') === -1) {
-            this.json = JSON.parse(this.ajaxRequest.responseText);
 
-            if(this.json.frames)
-            {
-                // sprite sheet
-                var scope = this;
-                var textureUrl = this.baseUrl + this.json.meta.image;
-                var image = new PIXI.ImageLoader(textureUrl, this.crossorigin);
-                var frameData = this.json.frames;
+    if(!this.ajaxRequest.responseText )
+    {
+        this.onError();
+        return;
+    }
 
-                this.texture = image.texture.baseTexture;
-                image.addEventListener('loaded', function() {
-                    scope.onLoaded();
-                });
+    this.json = JSON.parse(this.ajaxRequest.responseText);
 
-                for (var i in frameData) {
-                    var rect = frameData[i].frame;
-                    if (rect) {
-                        PIXI.TextureCache[i] = new PIXI.Texture(this.texture, {
-                            x: rect.x,
-                            y: rect.y,
-                            width: rect.w,
-                            height: rect.h
-                        });
+    if(this.json.frames)
+    {
+        // sprite sheet
+        var textureUrl = this.baseUrl + this.json.meta.image;
+        var image = new PIXI.ImageLoader(textureUrl, this.crossorigin);
+        var frameData = this.json.frames;
 
-                        // check to see ifthe sprite ha been trimmed..
-                        if (frameData[i].trimmed) {
+        this.texture = image.texture.baseTexture;
+        image.addEventListener('loaded', this.onLoaded.bind(this));
 
-                            var texture =  PIXI.TextureCache[i];
-
-                            var actualSize = frameData[i].sourceSize;
-                            var realSize = frameData[i].spriteSourceSize;
-
-                            texture.trim = new PIXI.Rectangle(realSize.x, realSize.y, actualSize.w, actualSize.h);
-                        }
-                    }
-                }
-
-                image.load();
-
-            }
-            else if(this.json.bones)
-            {
-                // spine animation
-                var spineJsonParser = new spine.SkeletonJson();
-                var skeletonData = spineJsonParser.readSkeletonData(this.json);
-                PIXI.AnimCache[this.url] = skeletonData;
-                this.onLoaded();
-            }
-            else
-            {
-                this.onLoaded();
-            }
-        }
-        else
+        for (var i in frameData)
         {
-            this.onError();
+            var rect = frameData[i].frame;
+
+            if (rect)
+            {
+                var textureSize = new PIXI.Rectangle(rect.x, rect.y, rect.w, rect.h);
+                var crop = textureSize.clone();
+                var trim = null;
+                
+                //  Check to see if the sprite is trimmed
+                if (frameData[i].trimmed)
+                {
+                    var actualSize = frameData[i].sourceSize;
+                    var realSize = frameData[i].spriteSourceSize;
+                    trim = new PIXI.Rectangle(realSize.x, realSize.y, actualSize.w, actualSize.h);
+                }
+                PIXI.TextureCache[i] = new PIXI.Texture(this.texture, textureSize, crop, trim);
+            }
         }
+
+        image.load();
+
+    }
+    else if(this.json.bones)
+    {
+        // spine animation
+        var spineJsonParser = new spine.SkeletonJson();
+        var skeletonData = spineJsonParser.readSkeletonData(this.json);
+        PIXI.AnimCache[this.url] = skeletonData;
+        this.onLoaded();
+    }
+    else
+    {
+        this.onLoaded();
     }
 };
 
 /**
- * Invoke when json file loaded
+ * Invoked when the json file has loaded.
  *
  * @method onLoaded
  * @private
@@ -157,12 +174,13 @@ PIXI.JsonLoader.prototype.onLoaded = function () {
 };
 
 /**
- * Invoke when error occured
+ * Invoked if an error occurs.
  *
  * @method onError
  * @private
  */
 PIXI.JsonLoader.prototype.onError = function () {
+
     this.dispatchEvent({
         type: 'error',
         content: this

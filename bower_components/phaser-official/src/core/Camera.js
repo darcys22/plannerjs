@@ -58,7 +58,7 @@ Phaser.Camera = function (game, id, x, y, width, height) {
     this.bounds = new Phaser.Rectangle(x, y, width, height);
 
     /**
-    * @property {Phaser.Rectangle} deadzone - Moving inside this Rectangle will not cause camera moving.
+    * @property {Phaser.Rectangle} deadzone - Moving inside this Rectangle will not cause the camera to move.
     */
     this.deadzone = null;
 
@@ -67,6 +67,12 @@ Phaser.Camera = function (game, id, x, y, width, height) {
     * @default
     */
     this.visible = true;
+
+    /**
+    * @property {boolean} roundPx - If a Camera has roundPx set to `true` it will call `view.floor` as part of its update loop, keeping its boundary to integer values. Set this to `false` to disable this from happening.
+    * @default
+    */
+    this.roundPx = true;
 
     /**
     * @property {boolean} atLimit - Whether this camera is flush with the World Bounds or not.
@@ -87,6 +93,13 @@ Phaser.Camera = function (game, id, x, y, width, height) {
     this._edge = 0;
 
     /**
+    * @property {Phaser.Point} position - Current position of the camera in world.
+    * @private
+    * @default
+    */
+    this._position = new Phaser.Point();
+
+    /**
     * @property {PIXI.DisplayObject} displayObject - The display object to which all game objects are added. Set by World.boot
     */
     this.displayObject = null;
@@ -95,6 +108,11 @@ Phaser.Camera = function (game, id, x, y, width, height) {
     * @property {Phaser.Point} scale - The scale of the display object to which all game objects are added. Set by World.boot
     */
     this.scale = null;
+
+    /**
+    * @property {Phaser.Point} _targetPosition - Internal point used to calculate target position
+    */
+    this._targetPosition = new Phaser.Point();
 
 };
 
@@ -168,6 +186,17 @@ Phaser.Camera.prototype = {
     },
 
     /**
+    * Sets the Camera follow target to null, stopping it from following an object if it's doing so.
+    *
+    * @method Phaser.Camera#unfollow
+    */
+    unfollow: function () {
+
+        this.target = null;
+
+    },
+
+    /**
     * Move the camera focus on a display object instantly.
     * @method Phaser.Camera#focusOn
     * @param {any} displayObject - The display object to focus the camera on. Must have visible x/y properties.
@@ -206,6 +235,11 @@ Phaser.Camera.prototype = {
             this.checkBounds();
         }
 
+        if (this.roundPx)
+        {
+            this.view.floor();
+        }
+
         this.displayObject.position.x = -this.view.x;
         this.displayObject.position.y = -this.view.y;
 
@@ -218,39 +252,41 @@ Phaser.Camera.prototype = {
     */
     updateTarget: function () {
 
+        this._targetPosition
+            .copyFrom(this.target)
+            .multiply(
+                this.target.parent ? this.target.parent.worldTransform.a : 1,
+                this.target.parent ? this.target.parent.worldTransform.d : 1
+            );
+
         if (this.deadzone)
         {
-            this._edge = this.target.x - this.deadzone.x;
+            this._edge = this._targetPosition.x - this.view.x;
 
-            if (this.view.x > this._edge)
+            if (this._edge < this.deadzone.left)
             {
-                this.view.x = this._edge;
+                this.view.x = this._targetPosition.x - this.deadzone.left;
+            }
+            else if (this._edge > this.deadzone.right)
+            {
+                this.view.x = this._targetPosition.x - this.deadzone.right;
             }
 
-            this._edge = this.target.x + this.target.width - this.deadzone.x - this.deadzone.width;
+            this._edge = this._targetPosition.y - this.view.y;
 
-            if (this.view.x < this._edge)
+            if (this._edge < this.deadzone.top)
             {
-                this.view.x = this._edge;
+                this.view.y = this._targetPosition.y - this.deadzone.top;
             }
-
-            this._edge = this.target.y - this.deadzone.y;
-
-            if (this.view.y > this._edge)
+            else if (this._edge > this.deadzone.bottom)
             {
-                this.view.y = this._edge;
-            }
-
-            this._edge = this.target.y + this.target.height - this.deadzone.y - this.deadzone.height;
-
-            if (this.view.y < this._edge)
-            {
-                this.view.y = this._edge;
+                this.view.y = this._targetPosition.y - this.deadzone.bottom;
             }
         }
         else
         {
-            this.focusOnXY(this.target.x, this.target.y);
+            this.view.x = this._targetPosition.x - this.view.halfWidth;
+            this.view.y = this._targetPosition.y - this.view.halfHeight;
         }
 
     },
@@ -261,7 +297,10 @@ Phaser.Camera.prototype = {
     */
     setBoundsToWorld: function () {
 
-        this.bounds.setTo(this.game.world.bounds.x, this.game.world.bounds.y, this.game.world.bounds.width, this.game.world.bounds.height);
+        if (this.bounds)
+        {
+            this.bounds.setTo(this.game.world.bounds.x, this.game.world.bounds.y, this.game.world.bounds.width, this.game.world.bounds.height);
+        }
 
     },
 
@@ -298,8 +337,6 @@ Phaser.Camera.prototype = {
             this.atLimit.y = true;
             this.view.y = this.bounds.bottom - this.height;
         }
-
-        this.view.floor();
 
     },
 
@@ -391,6 +428,31 @@ Object.defineProperty(Phaser.Camera.prototype, "y", {
     set: function (value) {
 
         this.view.y = value;
+
+        if (this.bounds)
+        {
+            this.checkBounds();
+        }
+    }
+
+});
+
+/**
+* The Cameras position. This value is automatically clamped if it falls outside of the World bounds.
+* @name Phaser.Camera#position
+* @property {Phaser.Point} position - Gets or sets the cameras xy position using Phaser.Point object.
+*/
+Object.defineProperty(Phaser.Camera.prototype, "position", {
+
+    get: function () {
+        this._position.set(this.view.centerX, this.view.centerY);
+        return this._position;
+    },
+
+    set: function (value) {
+
+        if (typeof value.x !== "undefined") { this.view.x = value.x; }
+        if (typeof value.y !== "undefined") { this.view.y = value.y; }
 
         if (this.bounds)
         {

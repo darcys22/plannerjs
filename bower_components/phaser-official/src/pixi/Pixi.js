@@ -7,8 +7,8 @@
  */
 var PIXI = PIXI || {};
 
-/*
-*
+/* 
+* 
 * This file contains a lot of pixi consts which are used across the rendering engine
 * @class Consts
 */
@@ -16,7 +16,8 @@ PIXI.WEBGL_RENDERER = 0;
 PIXI.CANVAS_RENDERER = 1;
 
 // useful for testing against if your lib is using pixi.
-PIXI.VERSION = "v1.5.0";
+PIXI.VERSION = "v2.0.0";
+
 
 // the various blend modes supported by pixi
 PIXI.blendModes = {
@@ -46,9 +47,70 @@ PIXI.scaleModes = {
     NEAREST:1
 };
 
-// interaction frequency
+// used to create uids for various pixi objects..
+PIXI._UID = 0;
+
+if(typeof(Float32Array) != 'undefined')
+{
+    PIXI.Float32Array = Float32Array;
+    PIXI.Uint16Array = Uint16Array;
+}
+else
+{
+    PIXI.Float32Array = Array;
+    PIXI.Uint16Array = Array;
+}
+
+// interaction frequency 
 PIXI.INTERACTION_FREQUENCY = 30;
 PIXI.AUTO_PREVENT_DEFAULT = true;
 
+PIXI.PI_2 = Math.PI * 2;
 PIXI.RAD_TO_DEG = 180 / Math.PI;
 PIXI.DEG_TO_RAD = Math.PI / 180;
+
+PIXI.RETINA_PREFIX = "@2x";
+//PIXI.SCALE_PREFIX "@x%%";
+
+PIXI.dontSayHello = false;
+
+
+PIXI.defaultRenderOptions = {
+    view:null, 
+    transparent:false, 
+    antialias:false, 
+    preserveDrawingBuffer:false,
+    resolution:1,
+    clearBeforeRender:true
+}
+
+PIXI.sayHello = function (type) 
+{
+    if(PIXI.dontSayHello)return;
+
+    if ( navigator.userAgent.toLowerCase().indexOf('chrome') > -1 )
+    {
+        var args = [
+            '%c %c %c Pixi.js ' + PIXI.VERSION + ' - ' + type + '  %c ' + ' %c ' + ' http://www.pixijs.com/  %c %c ♥%c♥%c♥ ',
+            'background: #ff66a5',
+            'background: #ff66a5',
+            'color: #ff66a5; background: #030307;',
+            'background: #ff66a5',
+            'background: #ffc3dc',
+            'background: #ff66a5',
+            'color: #ff2424; background: #fff',
+            'color: #ff2424; background: #fff',
+            'color: #ff2424; background: #fff'
+        ];
+
+       
+
+        console.log.apply(console, args);
+    }
+    else if (window['console'])
+    {
+        console.log('Pixi.js ' + PIXI.VERSION + ' - http://www.pixijs.com/');
+    }
+
+    PIXI.dontSayHello = true;
+};

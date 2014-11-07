@@ -13,8 +13,60 @@ window.onload = function () {
 
   game.state.start('boot');
 };
-},{"./states/boot":3,"./states/play":4,"./states/preload":5}],2:[function(require,module,exports){
+},{"./states/boot":4,"./states/play":5,"./states/preload":6}],2:[function(require,module,exports){
 'use strict';
+
+var Helpers = function() {
+};
+
+/**
+ * Draws a rounded rectangle using the current state of the canvas. 
+ * If you omit the last three params, it will draw a rectangle 
+ * outline with a 5 pixel border radius 
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {Number} x The top left x coordinate
+ * @param {Number} y The top left y coordinate 
+ * @param {Number} width The width of the rectangle 
+ * @param {Number} height The height of the rectangle
+ * @param {Number} radius The corner radius. Defaults to 5;
+ * @param {Boolean} fill Whether to fill the rectangle. Defaults to false.
+ * @param {Boolean} stroke Whether to stroke the rectangle. Defaults to true.
+ */
+Helpers.RoundRect = function(ctx, x, y, width, height, radius, fill, stroke) {
+  if (typeof stroke == "undefined" ) {
+    stroke = true;
+  }
+  if (typeof radius === "undefined") {
+    radius = 5;
+  }
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+  if (stroke) {
+    ctx.stroke();
+  }
+  if (fill) {
+    ctx.fill();
+  }        
+};
+
+  
+
+
+
+module.exports = Helpers;
+
+},{}],3:[function(require,module,exports){
+'use strict';
+var Helpers = require('../prefabs/helpers');
 
 var Shift = function(ctx, hour) {
   //var idCount = 1;
@@ -24,10 +76,11 @@ var Shift = function(ctx, hour) {
     this.id = 1 //idCount++;
     this.ctx = ctx;
     this.height = this.addShiftGrid();
+    this.createSprite();
   //};  
 };
 
-Shift.prototype = Object.create(Phaser.Sprite.prototype);
+//Shift.prototype = Object.create(Phaser.Sprite.prototype);
 Shift.prototype.constructor = Shift;
 
 Shift.prototype.update = function() {
@@ -37,11 +90,14 @@ Shift.prototype.update = function() {
 };
 
 Shift.shiftArray = [];
+Shift.SHIFT_SIZE = 71;
+Shift.SHIFT_HEIGHT = 40;
 
 Shift.prototype.createSprite = function() {
-  var bmd = this.ctx.game.add.bitmapData(this.position/2 * SHIFT_SIZE, SHIFT_HEIGHT);
+  var bmd = this.ctx.game.add.bitmapData(this.position/2 * Shift.SHIFT_SIZE, Shift.SHIFT_HEIGHT);
   bmd.context.fillStyle = 'rgba(255, 0, 0, 0.3)';
-  helpers.roundRect(bmd.ctx, 0, 0, bmd.width, bmd.height, 5, true);
+  debugger;
+  Helpers.roundRect(bmd.ctx, 0, 0, bmd.width, bmd.height, 5, true);
   Phaser.Sprite.call(this, this.ctx.game, this.xpos,this.ypos,bmd);
 
   //this.inputEnabled = true;
@@ -57,10 +113,10 @@ Shift.prototype.createSprite = function() {
 };
 
 Shift.prototype.ypos = function() {
-  return game.height - GameState.prototype.floor.height - (GameState.prototype.SHIFT_HEIGHT * this.height)
+  return this.ctx.game.height - 90 - (Shift.SHIFT_HEIGHT * this.height)
 };
 Shift.prototype.xpos = function() {
-  return (this.position - GameState.prototype.scrollStart) * (GameState.prototype.SHIFT_SIZE / 2)
+  return (this.position - this.ctx.scrollStart) * (Shift.SHIFT_SIZE / 2)
 };
 
 //takes a shift, adds it to the shiftgrid
@@ -69,9 +125,8 @@ Shift.prototype.addShiftGrid = function() {
   if (position == -1) {
     Shift.concatArr(Shift.shiftArray, this);
     return Shift.shiftArray.length;
-  Shift}
-  else {
-    Shift.ShiftArray[position] = Shift.addShiftArray(Shift.ShiftArray[position], this)
+  } else {
+    Shift.shiftArray[position] = Shift.addShiftArray(Shift.shiftArray[position], this)
   }
   return position;
 };
@@ -109,7 +164,7 @@ Shift.prototype.stopDrag = function(sprite, pointer) {
 
 module.exports = Shift;
 
-},{}],3:[function(require,module,exports){
+},{"../prefabs/helpers":2}],4:[function(require,module,exports){
 
 'use strict';
 
@@ -128,13 +183,11 @@ Boot.prototype = {
 
 module.exports = Boot;
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 
   'use strict';
 var Shift = require('../prefabs/shift');
-
-var SHIFT_SIZE = 71;
-var SHIFT_HEIGHT = 40;
+var Helpers = require('../prefabs/helpers');
 
   function Play() {}
   Play.prototype = {
@@ -189,7 +242,7 @@ var SHIFT_HEIGHT = 40;
   
   module.exports = Play;
 
-},{"../prefabs/shift":2}],5:[function(require,module,exports){
+},{"../prefabs/helpers":2,"../prefabs/shift":3}],6:[function(require,module,exports){
 
 'use strict';
 function Preload() {

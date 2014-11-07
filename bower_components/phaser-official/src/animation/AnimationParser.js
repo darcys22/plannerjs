@@ -8,6 +8,7 @@
 * Responsible for parsing sprite sheet and JSON data into the internal FrameData format that Phaser uses for animations.
 *
 * @class Phaser.AnimationParser
+* @static
 */
 Phaser.AnimationParser = {
 
@@ -59,7 +60,7 @@ Phaser.AnimationParser = {
         //  Zero or smaller than frame sizes?
         if (width === 0 || height === 0 || width < frameWidth || height < frameHeight || total === 0)
         {
-            console.warn("Phaser.AnimationParser.spriteSheet: width/height zero or width/height < given frameWidth/frameHeight");
+            console.warn("Phaser.AnimationParser.spriteSheet: '" + key + "'s width/height zero or width/height < given frameWidth/frameHeight");
             return null;
         }
 
@@ -72,6 +73,7 @@ Phaser.AnimationParser = {
         {
             var uuid = game.rnd.uuid();
 
+            //  uuid needed?
             data.addFrame(new Phaser.Frame(i, x, y, frameWidth, frameHeight, '', uuid));
 
             PIXI.TextureCache[uuid] = new PIXI.Texture(PIXI.BaseTextureCache[key], {
@@ -152,10 +154,7 @@ Phaser.AnimationParser = {
                     frames[i].spriteSourceSize.w,
                     frames[i].spriteSourceSize.h
                 );
-
-                PIXI.TextureCache[uuid].trim = new Phaser.Rectangle(frames[i].spriteSourceSize.x, frames[i].spriteSourceSize.y, frames[i].sourceSize.w, frames[i].sourceSize.h);
             }
-
         }
 
         return data;
@@ -221,8 +220,6 @@ Phaser.AnimationParser = {
                     frames[key].spriteSourceSize.w,
                     frames[key].spriteSourceSize.h
                 );
-
-                PIXI.TextureCache[uuid].trim = new Phaser.Rectangle(frames[key].spriteSourceSize.x, frames[key].spriteSourceSize.y, frames[key].sourceSize.w, frames[key].sourceSize.h);
             }
 
             i++;
@@ -272,22 +269,22 @@ Phaser.AnimationParser = {
             uuid = game.rnd.uuid();
 
             frame = frames[i].attributes;
-
-            name = frame.name.nodeValue;
-            x = parseInt(frame.x.nodeValue, 10);
-            y = parseInt(frame.y.nodeValue, 10);
-            width = parseInt(frame.width.nodeValue, 10);
-            height = parseInt(frame.height.nodeValue, 10);
+            
+            name = frame.name.value;
+            x = parseInt(frame.x.value, 10);
+            y = parseInt(frame.y.value, 10);
+            width = parseInt(frame.width.value, 10);
+            height = parseInt(frame.height.value, 10);
 
             frameX = null;
             frameY = null;
 
             if (frame.frameX)
             {
-                frameX = Math.abs(parseInt(frame.frameX.nodeValue, 10));
-                frameY = Math.abs(parseInt(frame.frameY.nodeValue, 10));
-                frameWidth = parseInt(frame.frameWidth.nodeValue, 10);
-                frameHeight = parseInt(frame.frameHeight.nodeValue, 10);
+                frameX = Math.abs(parseInt(frame.frameX.value, 10));
+                frameY = Math.abs(parseInt(frame.frameY.value, 10));
+                frameWidth = parseInt(frame.frameWidth.value, 10);
+                frameHeight = parseInt(frame.frameHeight.value, 10);
             }
 
             newFrame = data.addFrame(new Phaser.Frame(i, x, y, width, height, name, uuid));
@@ -298,13 +295,10 @@ Phaser.AnimationParser = {
                 width: width,
                 height: height
             });
-
-            //  Trimmed?
+                        //  Trimmed?
             if (frameX !== null || frameY !== null)
             {
                 newFrame.setTrim(true, width, height, frameX, frameY, frameWidth, frameHeight);
-
-                PIXI.TextureCache[uuid].trim = new Phaser.Rectangle(frameX, frameY, width, height);
             }
         }
 

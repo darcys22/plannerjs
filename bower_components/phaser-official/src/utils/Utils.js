@@ -13,6 +13,135 @@
 Phaser.Utils = {
 
     /**
+     * Gets an objects property by string.
+     *
+     * @method Phaser.Utils.getProperty
+     * @param {object} obj - The object to traverse.
+     * @param {string} prop - The property whose value will be returned.
+     * @return {*} the value of the property or null if property isn't found .
+     */
+    getProperty: function(obj, prop) {
+
+        var parts = prop.split('.'),
+            last = parts.pop(),
+            l = parts.length,
+            i = 1,
+            current = parts[0];
+
+        while (i < l && (obj = obj[current]))
+        {
+            current = parts[i];
+            i++;
+        }
+
+        if (obj)
+        {
+            return obj[last];
+        }
+        else
+        {
+            return null;
+        }
+
+    },
+
+    /**
+     * Sets an objects property by string.
+     *
+     * @method Phaser.Utils.setProperty
+     * @param {object} obj - The object to traverse
+     * @param {string} prop - The property whose value will be changed
+     * @return {object} The object on which the property was set.
+     */
+    setProperty: function(obj, prop, value) {
+
+        var parts = prop.split('.'),
+            last = parts.pop(),
+            l = parts.length,
+            i = 1,
+            current = parts[0];
+
+        while (i < l && (obj = obj[current]))
+        {
+            current = parts[i];
+            i++;
+        }
+
+        if (obj)
+        {
+            obj[last] = value;
+        }
+
+        return obj;
+
+    },
+
+    /**
+     * Transposes the elements of the given Array.
+     *
+     * @method Phaser.Utils.transposeArray
+     * @param {array} array - The array to transpose.
+     * @return {array} The transposed array.
+     */
+    transposeArray: function (array) {
+
+        var result = new Array(array[0].length);
+
+        for (var i = 0; i < array[0].length; i++)
+        {
+            result[i] = new Array(array.length - 1);
+
+            for (var j = array.length - 1; j > -1; j--)
+            {
+                result[i][j] = array[j][i];
+            }
+        }
+
+        return result;
+
+    },
+
+    /**
+     * Rotates the given array.
+     * Based on the routine from http://jsfiddle.net/MrPolywhirl/NH42z/
+     *
+     * @method Phaser.Utils.rotateArray
+     * @param {array} matrix - The array to rotate.
+     * @param {number|string} direction - The amount to rotate. Either a number: 90, -90, 270, -270, 180 or a string: 'rotateLeft', 'rotateRight' or 'rotate180'
+     * @return {array} The rotated array
+     */
+    rotateArray: function (matrix, direction) {
+
+        if (typeof direction !== 'string')
+        {
+            direction = ((direction % 360) + 360) % 360;
+        }
+
+        if (direction === 90 || direction === -270 || direction === 'rotateLeft')
+        {
+            matrix = Phaser.Utils.transposeArray(matrix);
+            matrix = matrix.reverse();
+        }
+        else if (direction === -90 || direction === 270 || direction === 'rotateRight')
+        {
+            matrix = matrix.reverse();
+            matrix = Phaser.Utils.transposeArray(matrix);
+        }
+        else if (Math.abs(direction) === 180 || direction === 'rotate180')
+        {
+            for (var i = 0; i < matrix.length; i++)
+            {
+                matrix[i].reverse();
+            }
+
+            matrix = matrix.reverse();
+        }
+
+        return matrix;
+
+    },
+
+    /**
     * Get a unit dimension from a string.
     *
     * @method Phaser.Utils.parseDimension
@@ -88,9 +217,9 @@ Phaser.Utils = {
     */
     pad: function (str, len, pad, dir) {
 
-        if (typeof(len) == "undefined") { var len = 0; }
-        if (typeof(pad) == "undefined") { var pad = ' '; }
-        if (typeof(dir) == "undefined") { var dir = 3; }
+        if (typeof(len) === "undefined") { var len = 0; }
+        if (typeof(pad) === "undefined") { var pad = ' '; }
+        if (typeof(dir) === "undefined") { var dir = 3; }
 
         var padlen = 0;
 
@@ -152,13 +281,6 @@ Phaser.Utils = {
         // |obj| is a plain object, created by {} or constructed with new Object
         return true;
     },
-
-
-    //  deep, target, objects to copy to the target object
-    //  This is a slightly modified version of {@link http://api.jquery.com/jQuery.extend/|jQuery.extend}
-    //  deep (boolean)
-    //  target (object to add to)
-    //  objects ... (objects to recurse and copy from)
 
     /**
     * This is a slightly modified version of http://api.jquery.com/jQuery.extend/
@@ -236,6 +358,56 @@ Phaser.Utils = {
 
         // Return the modified object
         return target;
+
+    },
+
+    /**
+    * Mixes the source object into the destination object, returning the newly modified destination object.
+    * Based on original code by @mudcube
+    *
+    * @method Phaser.Utils.mixin
+    * @param {object} from - The object to copy (the source object).
+    * @param {object} to - The object to copy to (the destination object).
+    * @return {object} The modified destination object.
+    */
+    mixin: function (from, to) {
+
+        if (!from || typeof (from) !== "object")
+        {
+            return to;
+        }
+
+        for (var key in from)
+        {
+            var o = from[key];
+
+            if (o.childNodes || o.cloneNode)
+            {
+                continue;
+            }
+
+            var type = typeof (from[key]);
+
+            if (!from[key] || type !== "object")
+            {
+                to[key] = from[key];
+            }
+            else
+            {
+                //  Clone sub-object
+                if (typeof (to[key]) === type)
+                {
+                    to[key] = Phaser.Utils.mixin(from[key], to[key]);
+                }
+                else
+                {
+                    to[key] = Phaser.Utils.mixin(from[key], new o.constructor());
+                }
+            }
+        }
+
+        return to;
+
     }
 
 };
@@ -243,7 +415,7 @@ Phaser.Utils = {
 /**
 * A polyfill for Function.prototype.bind
 */
-if (typeof Function.prototype.bind != 'function') {
+if (typeof Function.prototype.bind !== 'function') {
 
     /* jshint freeze: false */
     Function.prototype.bind = (function () {
@@ -254,7 +426,7 @@ if (typeof Function.prototype.bind != 'function') {
 
             var target = this, boundArgs = slice.call(arguments, 1);
 
-            if (typeof target != 'function')
+            if (typeof target !== 'function')
             {
                 throw new TypeError();
             }
@@ -290,4 +462,93 @@ if (!Array.isArray)
     {
         return Object.prototype.toString.call(arg) == '[object Array]';
     };
+}
+
+/**
+* A polyfill for Array.forEach
+* https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/forEach
+*/
+if (!Array.prototype.forEach)
+{
+    Array.prototype.forEach = function(fun /*, thisArg */)
+    {
+        "use strict";
+
+        if (this === void 0 || this === null)
+        {
+            throw new TypeError();
+        }
+
+        var t = Object(this);
+        var len = t.length >>> 0;
+
+        if (typeof fun !== "function")
+        {
+            throw new TypeError();
+        }
+
+        var thisArg = arguments.length >= 2 ? arguments[1] : void 0;
+
+        for (var i = 0; i < len; i++)
+        {
+            if (i in t)
+            {
+                fun.call(thisArg, t[i], i, t);
+            }
+        }
+    };
+}
+
+/**
+* Low-budget Float32Array knock-off, suitable for use with P2.js in IE9
+* Source: http://www.html5gamedevs.com/topic/5988-phaser-12-ie9/
+* Cameron Foale (http://www.kibibu.com)
+*/
+if (typeof window.Uint32Array !== "function" && typeof window.Uint32Array !== "object")
+{
+    var CheapArray = function(type)
+    {
+        var proto = new Array(); // jshint ignore:line
+
+        window[type] = function(arg) {
+
+            if (typeof(arg) === "number")
+            {
+                Array.call(this, arg);
+                this.length = arg;
+
+                for (var i = 0; i < this.length; i++)
+                {
+                    this[i] = 0;
+                }
+            }
+            else
+            {
+                Array.call(this, arg.length);
+
+                this.length = arg.length;
+
+                for (var i = 0; i < this.length; i++)
+                {
+                    this[i] = arg[i];
+                }
+            }
+        };
+
+        window[type].prototype = proto;
+        window[type].constructor = window[type];
+    };
+
+    CheapArray('Uint32Array'); // jshint ignore:line
+    CheapArray('Int16Array');  // jshint ignore:line
+}
+
+/**
+ * Also fix for the absent console in IE9
+ */
+if (!window.console)
+{
+    window.console = {};
+    window.console.log = window.console.assert = function(){};
+    window.console.warn = window.console.assert = function(){};
 }

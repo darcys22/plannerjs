@@ -5,14 +5,13 @@
 */
 
 /**
-* @class Phaser.Sprite
-*
-* @classdesc Create a new `Sprite` object. Sprites are the lifeblood of your game, used for nearly everything visual.
+* Sprites are the lifeblood of your game, used for nearly everything visual.
 *
 * At its most basic a Sprite consists of a set of coordinates and a texture that is rendered to the canvas.
 * They also contain additional properties allowing for physics motion (via Sprite.body), input handling (via Sprite.input),
 * events (via Sprite.events), animation (via Sprite.animations), camera culling and more. Please see the Examples for use cases.
 *
+* @class Phaser.Sprite
 * @constructor
 * @extends PIXI.Sprite
 * @param {Phaser.Game} game - A reference to the currently running game.
@@ -65,21 +64,7 @@ Phaser.Sprite = function (game, x, y, key, frame) {
     */
     this.key = key;
 
-    /**
-    * @property {number} _frame - Internal cache var.
-    * @private
-    */
-    this._frame = 0;
-
-    /**
-    * @property {string} _frameName - Internal cache var.
-    * @private
-    */
-    this._frameName = '';
-
     PIXI.Sprite.call(this, PIXI.TextureCache['__default']);
-
-    this.loadTexture(key, frame);
 
     this.position.set(x, y);
 
@@ -115,6 +100,12 @@ Phaser.Sprite = function (game, x, y, key, frame) {
     * @default
     */
     this.body = null;
+
+    /**
+    * @property {boolean} alive - A useful boolean to control if the Sprite is alive or dead (in terms of your gameplay, it doesn't effect rendering). Also linked to Sprite.health and Sprite.damage.
+    * @default
+    */
+    this.alive = true;
 
     /**
     * @property {number} health - Health value. Used in combination with damage() to allow for quick killing of Sprites.
@@ -156,7 +147,14 @@ Phaser.Sprite = function (game, x, y, key, frame) {
     this.cameraOffset = new Phaser.Point();
 
     /**
+    * @property {Phaser.Rectangle} cropRect - The Rectangle used to crop the texture. Set this via Sprite.crop. Any time you modify this property directly you must call Sprite.updateCrop.
+    * @default
+    */
+    this.cropRect = null;
+
+    /**
     * A small internal cache:
+    *
     * 0 = previous position.x
     * 1 = previous position.y
     * 2 = previous rotation
@@ -165,16 +163,31 @@ Phaser.Sprite = function (game, x, y, key, frame) {
     * 5 = outOfBoundsFired (0 = no, 1 = yes)
     * 6 = exists (0 = no, 1 = yes)
     * 7 = fixed to camera (0 = no, 1 = yes)
+    * 8 = destroy phase? (0 = no, 1 = yes)
     * @property {Array} _cache
     * @private
     */
     this._cache = [ 0, 0, 0, 0, 1, 0, 1, 0 ];
 
     /**
+    * @property {Phaser.Rectangle} _crop - Internal cache var.
+    * @private
+    */
+    this._crop = null;
+
+    /**
+    * @property {Phaser.Rectangle} _frame - Internal cache var.
+    * @private
+    */
+    this._frame = null;
+
+    /**
     * @property {Phaser.Rectangle} _bounds - Internal cache var.
     * @private
     */
     this._bounds = new Phaser.Rectangle();
+
+    this.loadTexture(key, frame);
 
 };
 
@@ -340,29 +353,41 @@ Phaser.Sprite.prototype.postUpdate = function() {
 * @method Phaser.Sprite#loadTexture
 * @memberof Phaser.Sprite
 * @param {string|Phaser.RenderTexture|Phaser.BitmapData|PIXI.Texture} key - This is the image or texture used by the Sprite during rendering. It can be a string which is a reference to the Cache entry, or an instance of a RenderTexture, BitmapData or PIXI.Texture.
-* @param {string|number} frame - If this Sprite is using part of a sprite sheet or texture atlas you can specify the exact frame to use by giving a string or numeric index.
+* @param {string|number} [frame] - If this Sprite is using part of a sprite sheet or texture atlas you can specify the exact frame to use by giving a string or numeric index.
+* @param {boolean} [stopAnimation=true] - If an animation is already playing on this Sprite you can choose to stop it or let it carry on playing.
 */
-Phaser.Sprite.prototype.loadTexture = function (key, frame) {
+Phaser.Sprite.prototype.loadTexture = function (key, frame, stopAnimation) {
 
     frame = frame || 0;
+
+    if (stopAnimation || typeof stopAnimation === 'undefined')
+    {
+        this.animations.stop();
+    }
+
+    this.key = key;
+
+    var setFrame = true;
+    var smoothed = this.smoothed;
 
     if (key instanceof Phaser.RenderTexture)
     {
         this.key = key.key;
         this.setTexture(key);
-        return;
     }
     else if (key instanceof Phaser.BitmapData)
     {
-        this.key = key;
+        //  This works from a reference, which probably isn't what we need here
         this.setTexture(key.texture);
-        return;
+
+        if (this.game.cache.getFrameData(key.key, Phaser.Cache.BITMAPDATA))
+        {
+            setFrame = !this.animations.loadFrameData(this.game.cache.getFrameData(key.key, Phaser.Cache.BITMAPDATA), frame);
+        }
     }
     else if (key instanceof PIXI.Texture)
     {
-        this.key = key;
         this.setTexture(key);
-        return;
     }
     else
     {
@@ -370,86 +395,186 @@ Phaser.Sprite.prototype.loadTexture = function (key, frame) {
         {
             this.key = '__default';
             this.setTexture(PIXI.TextureCache[this.key]);
-            return;
         }
         else if (typeof key === 'string' && !this.game.cache.checkImageKey(key))
         {
+            console.warn("Texture with key '" + key + "' not found.");
             this.key = '__missing';
             this.setTexture(PIXI.TextureCache[this.key]);
-            return;
-        }
-
-        if (this.game.cache.isSpriteSheet(key))
-        {
-            this.key = key;
-
-            // var frameData = this.game.cache.getFrameData(key);
-            this.animations.loadFrameData(this.game.cache.getFrameData(key));
-
-            if (typeof frame === 'string')
-            {
-                this.frameName = frame;
-            }
-            else
-            {
-                this.frame = frame;
-            }
         }
         else
         {
-            this.key = key;
-            this.setTexture(PIXI.TextureCache[key]);
-            return;
+            this.setTexture(new PIXI.Texture(PIXI.BaseTextureCache[key]));
+
+            setFrame = !this.animations.loadFrameData(this.game.cache.getFrameData(key), frame);
         }
+    }
+    
+    this.texture.baseTexture.dirty();
+
+    if (setFrame)
+    {
+        this._frame = Phaser.Rectangle.clone(this.texture.frame);
+    }
+
+    if (!smoothed)
+    {
+        this.smoothed = false;
+    }
+
+};
+
+/**
+* Sets the Texture frame the Sprite uses for rendering.
+* This is primarily an internal method used by Sprite.loadTexture, although you may call it directly.
+*
+* @method Phaser.Sprite#setFrame
+* @memberof Phaser.Sprite
+* @param {Phaser.Frame} frame - The Frame to be used by the Sprite texture.
+*/
+Phaser.Sprite.prototype.setFrame = function(frame) {
+
+    this._frame = frame;
+
+    this.texture.frame.x = frame.x;
+    this.texture.frame.y = frame.y;
+    this.texture.frame.width = frame.width;
+    this.texture.frame.height = frame.height;
+
+    this.texture.crop.x = frame.x;
+    this.texture.crop.y = frame.y;
+    this.texture.crop.width = frame.width;
+    this.texture.crop.height = frame.height;
+
+    if (frame.trimmed)
+    {
+        if (this.texture.trim)
+        {
+            this.texture.trim.x = frame.spriteSourceSizeX;
+            this.texture.trim.y = frame.spriteSourceSizeY;
+            this.texture.trim.width = frame.sourceSizeW;
+            this.texture.trim.height = frame.sourceSizeH;
+        }
+        else
+        {
+            this.texture.trim = { x: frame.spriteSourceSizeX, y: frame.spriteSourceSizeY, width: frame.sourceSizeW, height: frame.sourceSizeH };
+        }
+
+        this.texture.width = frame.sourceSizeW;
+        this.texture.height = frame.sourceSizeH;
+        this.texture.frame.width = frame.sourceSizeW;
+        this.texture.frame.height = frame.sourceSizeH;
+    }
+    else if (!frame.trimmed && this.texture.trim)
+    {
+        this.texture.trim = null;
+    }
+
+    if (this.cropRect)
+    {
+        this.updateCrop();
+    }
+
+    this.texture._updateUvs();
+
+};
+
+/**
+* Resets the Texture frame dimensions that the Sprite uses for rendering.
+*
+* @method Phaser.Sprite#resetFrame
+* @memberof Phaser.Sprite
+*/
+Phaser.Sprite.prototype.resetFrame = function() {
+
+    if (this._frame)
+    {
+        this.setFrame(this._frame);
     }
 
 };
 
 /**
 * Crop allows you to crop the texture used to display this Sprite.
-* Cropping takes place from the top-left of the Sprite and can be modified in real-time by providing an updated rectangle object.
-* Note that cropping a Sprite will reset its animation to the first frame. You cannot currently crop an animated Sprite.
+* This modifies the core Sprite texture frame, so the Sprite width/height properties will adjust accordingly.
+*
+* Cropping takes place from the top-left of the Sprite and can be modified in real-time by either providing an updated rectangle object to Sprite.crop,
+* or by modifying Sprite.cropRect (or a reference to it) and then calling Sprite.updateCrop.
+*
+* The rectangle object given to this method can be either a Phaser.Rectangle or any object so long as it has public x, y, width and height properties.
+* A reference to the rectangle is stored in Sprite.cropRect unless the `copy` parameter is `true` in which case the values are duplicated to a local object.
 *
 * @method Phaser.Sprite#crop
 * @memberof Phaser.Sprite
-* @param {Phaser.Rectangle} rect - The Rectangle to crop the Sprite to. Pass null or no parameters to clear a previously set crop rectangle.
+* @param {Phaser.Rectangle} rect - The Rectangle used during cropping. Pass null or no parameters to clear a previously set crop rectangle.
+* @param {boolean} [copy=false] - If false Sprite.cropRect will be a reference to the given rect. If true it will copy the rect values into a local Sprite.cropRect object.
 */
-Phaser.Sprite.prototype.crop = function(rect) {
+Phaser.Sprite.prototype.crop = function(rect, copy) {
 
-    if (typeof rect === 'undefined' || rect === null)
+    if (typeof copy === 'undefined') { copy = false; }
+
+    if (rect)
     {
-        //  Clear any crop that may be set
-        if (this.texture.hasOwnProperty('sourceWidth'))
+        if (copy && this.cropRect !== null)
         {
-            this.texture.setFrame(new Phaser.Rectangle(0, 0, this.texture.sourceWidth, this.texture.sourceHeight));
+            this.cropRect.setTo(rect.x, rect.y, rect.width, rect.height);
         }
-    }
-    else
-    {
-        //  Do we need to clone the PIXI.Texture object?
-        if (this.texture instanceof PIXI.Texture)
+        else if (copy && this.cropRect === null)
         {
-            //  Yup, let's rock it ...
-            var local = {};
-
-            Phaser.Utils.extend(true, local, this.texture);
-
-            local.sourceWidth = local.width;
-            local.sourceHeight = local.height;
-            local.frame = rect;
-            local.width = rect.width;
-            local.height = rect.height;
-
-            this.texture = local;
-
-            this.texture.updateFrame = true;
-            PIXI.Texture.frameUpdates.push(this.texture);
+            this.cropRect = new Phaser.Rectangle(rect.x, rect.y, rect.width, rect.height);
         }
         else
         {
-            this.texture.setFrame(rect);
+            this.cropRect = rect;
         }
+
+        this.updateCrop();
     }
+    else
+    {
+        this._crop = null;
+        this.cropRect = null;
+
+        this.resetFrame();
+    }
+
+};
+
+/**
+* If you have set a crop rectangle on this Sprite via Sprite.crop and since modified the Sprite.cropRect property (or the rectangle it references)
+* then you need to update the crop frame by calling this method.
+*
+* @method Phaser.Sprite#updateCrop
+* @memberof Phaser.Sprite
+*/
+Phaser.Sprite.prototype.updateCrop = function() {
+
+    if (!this.cropRect)
+    {
+        return;
+    }
+
+    this._crop = Phaser.Rectangle.clone(this.cropRect, this._crop);
+    this._crop.x += this._frame.x;
+    this._crop.y += this._frame.y;
+
+    var cx = Math.max(this._frame.x, this._crop.x);
+    var cy = Math.max(this._frame.y, this._crop.y);
+    var cw = Math.min(this._frame.right, this._crop.right) - cx;
+    var ch = Math.min(this._frame.bottom, this._crop.bottom) - cy;
+
+    this.texture.crop.x = cx;
+    this.texture.crop.y = cy;
+    this.texture.crop.width = cw;
+    this.texture.crop.height = ch;
+
+    this.texture.frame.width = Math.min(cw, this.cropRect.width);
+    this.texture.frame.height = Math.min(ch, this.cropRect.height);
+
+    this.texture.width = this.texture.frame.width;
+    this.texture.height = this.texture.frame.height;
+
+    this.texture._updateUvs();
 
 };
 
@@ -516,9 +641,16 @@ Phaser.Sprite.prototype.kill = function() {
 */
 Phaser.Sprite.prototype.destroy = function(destroyChildren) {
 
-    if (this.game === null) { return; }
+    if (this.game === null || this._cache[8] === 1) { return; }
 
     if (typeof destroyChildren === 'undefined') { destroyChildren = true; }
+
+    this._cache[8] = 1;
+
+    if (this.events)
+    {
+        this.events.onDestroy.dispatch(this);
+    }
 
     if (this.parent)
     {
@@ -569,6 +701,16 @@ Phaser.Sprite.prototype.destroy = function(destroyChildren) {
         }
     }
 
+    if (this._crop)
+    {
+        this._crop = null;
+    }
+
+    if (this._frame)
+    {
+        this._frame = null;
+    }
+
     this.alive = false;
     this.exists = false;
     this.visible = false;
@@ -576,6 +718,8 @@ Phaser.Sprite.prototype.destroy = function(destroyChildren) {
     this.filters = null;
     this.mask = null;
     this.game = null;
+
+    this._cache[8] = 0;
 
 };
 
@@ -686,7 +830,7 @@ Phaser.Sprite.prototype.play = function (name, frameRate, loop, killOnComplete) 
 * Checks to see if the bounds of this Sprite overlaps with the bounds of the given Display Object, which can be a Sprite, Image, TileSprite or anything that extends those such as a Button.
 * This check ignores the Sprites hitArea property and runs a Sprite.getBounds comparison on both objects to determine the result.
 * Therefore it's relatively expensive to use in large quantities (i.e. with lots of Sprites at a high frequency), but should be fine for low-volume testing where physics isn't required.
-* 
+*
 * @method Phaser.Sprite#overlap
 * @memberof Phaser.Sprite
 * @param {Phaser.Sprite|Phaser.Image|Phaser.TileSprite|Phaser.Button|PIXI.DisplayObject} displayObject - The display object to check against.
@@ -878,6 +1022,10 @@ Object.defineProperty(Phaser.Sprite.prototype, "inputEnabled", {
                 this.input = new Phaser.InputHandler(this);
                 this.input.start();
             }
+            else if (this.input && !this.input.enabled)
+            {
+                this.input.start();
+            }
         }
         else
         {
@@ -886,6 +1034,7 @@ Object.defineProperty(Phaser.Sprite.prototype, "inputEnabled", {
                 this.input.stop();
             }
         }
+
     }
 
 });
@@ -1051,6 +1200,20 @@ Object.defineProperty(Phaser.Sprite.prototype, "y", {
         {
             this.body._reset = 1;
         }
+
+    }
+
+});
+
+/**
+* @name Phaser.Sprite#destroyPhase
+* @property {boolean} destroyPhase - True if this object is currently being destroyed.
+*/
+Object.defineProperty(Phaser.Sprite.prototype, "destroyPhase", {
+
+    get: function () {
+
+        return !!this._cache[8];
 
     }
 

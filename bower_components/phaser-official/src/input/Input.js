@@ -32,6 +32,11 @@ Phaser.Input = function (game) {
     this.hitContext = null;
 
     /**
+    * @property {array} moveCallbacks - An array of callbacks that will be fired every time the activePointer receives a move event from the DOM.
+    */
+    this.moveCallbacks = [];
+
+    /**
     * @property {function} moveCallback - An optional callback that will be fired every time the activePointer receives a move event from the DOM. Set to null to disable.
     */
     this.moveCallback = null;
@@ -237,9 +242,10 @@ Phaser.Input = function (game) {
     this.gamepad = null;
 
     /**
-    * @property {Phaser.Gestures} gestures - The Gestures manager.
+    * @property {boolean} resetLocked - If the Input Manager has been reset locked then all calls made to InputManager.reset, such as from a State change, are ignored.
+    * @default
     */
-    // this.gestures = null;
+    this.resetLocked = false;
 
     /**
     * @property {Phaser.Signal} onDown - A Signal that is dispatched each time a pointer is pressed down.
@@ -262,10 +268,16 @@ Phaser.Input = function (game) {
     this.onHold = null;
 
     /**
-    * A linked list of interactive objects; the InputHandler components (belonging to Sprites) register themselves with this.
-    * @property {Phaser.LinkedList} interactiveItems
+    * @property {number} minPriorityID - You can tell all Pointers to ignore any object with a priorityID lower than the minPriorityID. Useful when stacking UI layers. Set to zero to disable.
+    * @default
     */
-    this.interactiveItems = new Phaser.LinkedList();
+    this.minPriorityID = 0;
+
+    /**
+    * A list of interactive objects. The InputHandler components add and remove themselves from this list.
+    * @property {Phaser.ArrayList} interactiveItems
+    */
+    this.interactiveItems = new Phaser.ArrayList();
 
     /**
     * @property {Phaser.Point} _localPoint - Internal cache var.
@@ -335,7 +347,6 @@ Phaser.Input.prototype = {
         this.touch = new Phaser.Touch(this.game);
         this.mspointer = new Phaser.MSPointer(this.game);
         this.gamepad = new Phaser.Gamepad(this.game);
-        // this.gestures = new Phaser.Gestures(this.game);
 
         this.onDown = new Phaser.Signal();
         this.onUp = new Phaser.Signal();
@@ -376,24 +387,40 @@ Phaser.Input.prototype = {
         this.touch.stop();
         this.mspointer.stop();
         this.gamepad.stop();
-        // this.gestures.stop();
 
-        this.moveCallback = null;
+        this.moveCallbacks = [];
 
     },
 
     /**
-    * Sets a callback that is fired every time the activePointer receives a DOM move event such as a mousemove or touchmove.
+    * Adds a callback that is fired every time the activePointer receives a DOM move event such as a mousemove or touchmove.
     * It will be called every time the activePointer moves, which in a multi-touch game can be a lot of times, so this is best
-    * to only use if you've limited input to a single pointer (i.e. mouse or touch)
-    * @method Phaser.Input#setMoveCallback
+    * to only use if you've limited input to a single pointer (i.e. mouse or touch).
+    * The callback is added to the Phaser.Input.moveCallbacks array and should be removed with Phaser.Input.deleteMoveCallback.
+    * 
+    * @method Phaser.Input#addMoveCallback
     * @param {function} callback - The callback that will be called each time the activePointer receives a DOM move event.
-    * @param {object} callbackContext - The context in which the callback will be called.
+    * @param {object} context - The context in which the callback will be called.
+    * @return {number} The index of the callback entry. Use this index when calling Input.deleteMoveCallback.
     */
-    setMoveCallback: function (callback, callbackContext) {
+    addMoveCallback: function (callback, context) {
 
-        this.moveCallback = callback;
-        this.moveCallbackContext = callbackContext;
+        return this.moveCallbacks.push( { callback: callback, context: context }) - 1;
+
+    },
+
+    /**
+    * Removes the callback at the defined index from the Phaser.Input.moveCallbacks array
+    * 
+    * @method Phaser.Input#deleteMoveCallback
+    * @param {number} index - The index of the callback to remove.
+    */
+    deleteMoveCallback: function (index) {
+
+        if (this.moveCallbacks[index])
+        {
+            this.moveCallbacks.splice(index, 1);
+        }
 
     },
 
@@ -430,6 +457,7 @@ Phaser.Input.prototype = {
 
     /**
     * Updates the Input Manager. Called by the core Game loop.
+    * 
     * @method Phaser.Input#update
     * @protected
     */
@@ -465,25 +493,26 @@ Phaser.Input.prototype = {
 
         this._pollCounter = 0;
 
-        // if (this.gestures.active) { this.gestures.update(); }
-
     },
 
     /**
-    * Reset all of the Pointers and Input states
+    * Reset all of the Pointers and Input states. The optional `hard` parameter will reset any events or callbacks that may be bound.
+    * Input.reset is called automatically during a State change or if a game loses focus / visibility. If you wish to control the reset
+    * directly yourself then set InputManager.resetLocked to `true`.
+    *
     * @method Phaser.Input#reset
-    * @param {boolean} hard - A soft reset (hard = false) won't reset any Signals that might be bound. A hard reset will.
+    * @param {boolean} [hard=false] - A soft reset won't reset any events or callbacks that are bound. A hard reset will.
     */
     reset: function (hard) {
 
-        if (this.game.isBooted === false)
+        if (!this.game.isBooted || this.resetLocked)
         {
             return;
         }
 
-        if (typeof hard == 'undefined') { hard = false; }
+        if (typeof hard === 'undefined') { hard = false; }
 
-        this.keyboard.reset();
+        this.keyboard.reset(hard);
         this.mousePointer.reset();
         this.gamepad.reset();
 
@@ -502,7 +531,7 @@ Phaser.Input.prototype = {
             this.game.canvas.style.cursor = 'inherit';
         }
 
-        if (hard === true)
+        if (hard)
         {
             this.onDown.dispose();
             this.onUp.dispose();
@@ -512,8 +541,7 @@ Phaser.Input.prototype = {
             this.onUp = new Phaser.Signal();
             this.onTap = new Phaser.Signal();
             this.onHold = new Phaser.Signal();
-
-            this.interactiveItems.callAll('reset');
+            this.moveCallbacks = [];
         }
 
         this._pollCounter = 0;
@@ -665,18 +693,22 @@ Phaser.Input.prototype = {
     },
 
     /**
-    * Get the Pointer object whos identified property matches the given identifier value.
+    * Get the Pointer object whos `identifier` property matches the given identifier value.
+    * The identifier property is not set until the Pointer has been used at least once, as its populated by the DOM event.
+    * Also it can change every time you press the pointer down, and is not fixed once set.
+    * Note: Not all browsers set the identifier property and it's not part of the W3C spec, so you may need getPointerFromId instead.
+    *
     * @method Phaser.Input#getPointerFromIdentifier
     * @param {number} identifier - The Pointer.identifier value to search for.
     * @return {Phaser.Pointer} A Pointer object or null if no Pointer object matches the requested identifier.
     */
     getPointerFromIdentifier: function (identifier) {
 
-        if (this.pointer1.identifier == identifier)
+        if (this.pointer1.identifier === identifier)
         {
             return this.pointer1;
         }
-        else if (this.pointer2.identifier == identifier)
+        else if (this.pointer2.identifier === identifier)
         {
             return this.pointer2;
         }
@@ -684,7 +716,41 @@ Phaser.Input.prototype = {
         {
             for (var i = 3; i <= 10; i++)
             {
-                if (this['pointer' + i] && this['pointer' + i].identifier == identifier)
+                if (this['pointer' + i] && this['pointer' + i].identifier === identifier)
+                {
+                    return this['pointer' + i];
+                }
+            }
+        }
+
+        return null;
+
+    },
+
+    /**
+    * Get the Pointer object whos `pointerId` property matches the given value.
+    * The pointerId property is not set until the Pointer has been used at least once, as its populated by the DOM event.
+    * Also it can change every time you press the pointer down if the browser recycles it.
+    *
+    * @method Phaser.Input#getPointerFromId
+    * @param {number} pointerId - The Pointer.pointerId value to search for.
+    * @return {Phaser.Pointer} A Pointer object or null if no Pointer object matches the requested identifier.
+    */
+    getPointerFromId: function (pointerId) {
+
+        if (this.pointer1.pointerId === pointerId)
+        {
+            return this.pointer1;
+        }
+        else if (this.pointer2.pointerId === pointerId)
+        {
+            return this.pointer2;
+        }
+        else
+        {
+            for (var i = 3; i <= 10; i++)
+            {
+                if (this['pointer' + i] && this['pointer' + i].pointerId === pointerId)
                 {
                     return this['pointer' + i];
                 }
@@ -707,11 +773,11 @@ Phaser.Input.prototype = {
         if (typeof output === 'undefined') { output = new Phaser.Point(); }
 
         var wt = displayObject.worldTransform;
-        var id = 1 / (wt.a * wt.d + wt.b * -wt.c);
+        var id = 1 / (wt.a * wt.d + wt.c * -wt.b);
 
         return output.setTo(
-            wt.d * id * pointer.x + -wt.b * id * pointer.y + (wt.ty * wt.b - wt.tx * wt.d) * id,
-            wt.a * id * pointer.y + -wt.c * id * pointer.x + (-wt.ty * wt.a + wt.tx * wt.c) * id
+            wt.d * id * pointer.x + -wt.c * id * pointer.y + (wt.ty * wt.c - wt.tx * wt.d) * id,
+            wt.a * id * pointer.y + -wt.b * id * pointer.x + (-wt.ty * wt.a + wt.tx * wt.b) * id
         );
 
     },
@@ -737,28 +803,7 @@ Phaser.Input.prototype = {
 
         if (displayObject.hitArea && displayObject.hitArea.contains)
         {
-            if (displayObject.hitArea.contains(this._localPoint.x, this._localPoint.y))
-            {
-                return true;
-            }
-
-            return false;
-        }
-        else if (displayObject instanceof Phaser.TileSprite)
-        {
-            var width = displayObject.width;
-            var height = displayObject.height;
-            var x1 = -width * displayObject.anchor.x;
-
-            if (this._localPoint.x > x1 && this._localPoint.x < x1 + width)
-            {
-                var y1 = -height * displayObject.anchor.y;
-
-                if (this._localPoint.y > y1 && this._localPoint.y < y1 + height)
-                {
-                    return true;
-                }
-            }
+            return (displayObject.hitArea.contains(this._localPoint.x, this._localPoint.y));
         }
         else if (displayObject instanceof PIXI.Sprite)
         {
@@ -766,16 +811,52 @@ Phaser.Input.prototype = {
             var height = displayObject.texture.frame.height;
             var x1 = -width * displayObject.anchor.x;
 
-            if (this._localPoint.x > x1 && this._localPoint.x < x1 + width)
+            if (this._localPoint.x >= x1 && this._localPoint.x < x1 + width)
             {
                 var y1 = -height * displayObject.anchor.y;
 
-                if (this._localPoint.y > y1 && this._localPoint.y < y1 + height)
+                if (this._localPoint.y >= y1 && this._localPoint.y < y1 + height)
                 {
                     return true;
                 }
             }
         }
+        else if (displayObject instanceof Phaser.TileSprite)
+        {
+            var width = displayObject.width;
+            var height = displayObject.height;
+            var x1 = -width * displayObject.anchor.x;
+
+            if (this._localPoint.x >= x1 && this._localPoint.x < x1 + width)
+            {
+                var y1 = -height * displayObject.anchor.y;
+
+                if (this._localPoint.y >= y1 && this._localPoint.y < y1 + height)
+                {
+                    return true;
+                }
+            }
+        }
+        else if (displayObject instanceof Phaser.Graphics)
+        {
+            for (var i = 0; i < displayObject.graphicsData.length; i++)
+            {
+                var data = displayObject.graphicsData[i];
+
+                if (!data.fill)
+                {
+                    continue;
+                }
+
+                //  Only deal with fills..
+                if (data.shape && data.shape.contains(this._localPoint.x, this._localPoint.y))
+                {
+                    return true;
+                }
+            }
+        }
+
+        //  Didn't hit the parent, does it have any children?
 
         for (var i = 0, len = displayObject.children.length; i < len; i++)
         {

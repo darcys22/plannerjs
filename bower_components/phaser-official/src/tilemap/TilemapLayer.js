@@ -157,6 +157,12 @@ Phaser.TilemapLayer = function (game, tilemap, index, width, height) {
     this.rayStepRate = 4;
 
     /**
+    * @property {boolean} wrap - Flag controlling if the layer tiles wrap at the edges. Only works if the World size matches the Map size.
+    * @default false
+    */
+    this.wrap = false;
+
+    /**
     * @property {object} _mc - Local map data and calculation cache.
     * @private
     */
@@ -205,8 +211,6 @@ Phaser.TilemapLayer.prototype.constructor = Phaser.TilemapLayer;
 * @memberof Phaser.TilemapLayer
 */
 Phaser.TilemapLayer.prototype.postUpdate = function () {
-
-// console.log('layer pu');
 
     Phaser.Image.prototype.postUpdate.call(this);
 
@@ -496,19 +500,6 @@ Phaser.TilemapLayer.prototype.updateMax = function () {
     this._mc.maxX = this.game.math.ceil(this.canvas.width / this.map.tileWidth) + 1;
     this._mc.maxY = this.game.math.ceil(this.canvas.height / this.map.tileHeight) + 1;
 
-    if (this.layer)
-    {
-        if (this._mc.maxX > this.layer.width)
-        {
-            this._mc.maxX = this.layer.width;
-        }
-
-        if (this._mc.maxY > this.layer.height)
-        {
-            this._mc.maxY = this.layer.height;
-        }
-    }
-
     this.dirty = true;
 
 };
@@ -553,31 +544,61 @@ Phaser.TilemapLayer.prototype.render = function () {
 
     for (var y = this._mc.startY, lenY = this._mc.startY + this._mc.maxY; y < lenY; y++)
     {
-        this._column = this.layer.data[y];
+        this._column = null;
 
-        for (var x = this._mc.startX, lenX = this._mc.startX + this._mc.maxX; x < lenX; x++)
+        if (y < 0 && this.wrap)
         {
-            if (this._column[x])
+            this._column = this.layer.data[y + this.map.height];
+        }
+        else if (y >= this.map.height && this.wrap)
+        {
+            this._column = this.layer.data[y - this.map.height];
+        }
+        else if (this.layer.data[y])
+        {
+            this._column = this.layer.data[y];
+        }
+
+        if (this._column)
+        {
+            for (var x = this._mc.startX, lenX = this._mc.startX + this._mc.maxX; x < lenX; x++)
             {
-                tile = this._column[x];
+                var tile = null;
 
-                set = this.map.tilesets[this.map.tiles[tile.index][2]];
-
-                if (this.debug === false && tile.alpha !== this.context.globalAlpha)
+                if (x < 0 && this.wrap)
                 {
-                    this.context.globalAlpha = tile.alpha;
+                    tile = this._column[x + this.map.width];
+                }
+                else if (x >= this.map.width && this.wrap)
+                {
+                    tile = this._column[x - this.map.width];
+                }
+                else if (this._column[x])
+                {
+                    tile = this._column[x];
                 }
 
-                set.draw(this.context, Math.floor(this._mc.tx), Math.floor(this._mc.ty), tile.index);
-
-                if (tile.debug)
+                if (tile && tile.index > -1)
                 {
-                    this.context.fillStyle = 'rgba(0, 255, 0, 0.4)';
-                    this.context.fillRect(Math.floor(this._mc.tx), Math.floor(this._mc.ty), this.map.tileWidth, this.map.tileHeight);
+                    set = this.map.tilesets[this.map.tiles[tile.index][2]];
+
+                    if (this.debug === false && tile.alpha !== this.context.globalAlpha)
+                    {
+                        this.context.globalAlpha = tile.alpha;
+                    }
+
+                    set.draw(this.context, Math.floor(this._mc.tx), Math.floor(this._mc.ty), tile.index);
+
+                    if (tile.debug)
+                    {
+                        this.context.fillStyle = 'rgba(0, 255, 0, 0.4)';
+                        this.context.fillRect(Math.floor(this._mc.tx), Math.floor(this._mc.ty), this.map.tileWidth, this.map.tileHeight);
+                    }
                 }
+
+                this._mc.tx += this.map.tileWidth;
+
             }
-
-            this._mc.tx += this.map.tileWidth;
 
         }
 
@@ -592,11 +613,7 @@ Phaser.TilemapLayer.prototype.render = function () {
         this.renderDebug();
     }
 
-    if (this.game.renderType === Phaser.WEBGL)
-    {
-        // PIXI.updateWebGLTexture(this.baseTexture, renderSession.gl);
-        PIXI.updateWebGLTexture(this.baseTexture, this.game.renderer.gl);
-    }
+    this.texture._updateUvs();
 
     this.dirty = false;
     this.layer.dirty = false;
@@ -620,52 +637,81 @@ Phaser.TilemapLayer.prototype.renderDebug = function () {
 
     for (var y = this._mc.startY, lenY = this._mc.startY + this._mc.maxY; y < lenY; y++)
     {
-        this._column = this.layer.data[y];
+        this._column = null;
 
-        for (var x = this._mc.startX, lenX = this._mc.startX + this._mc.maxX; x < lenX; x++)
+        if (y < 0 && this.wrap)
         {
-            var tile = this._column[x];
+            this._column = this.layer.data[y + this.map.height];
+        }
+        else if (y >= this.map.height && this.wrap)
+        {
+            this._column = this.layer.data[y - this.map.height];
+        }
+        else if (this.layer.data[y])
+        {
+            this._column = this.layer.data[y];
+        }
 
-            if (tile && (tile.faceTop || tile.faceBottom || tile.faceLeft || tile.faceRight))
+        if (this._column)
+        {
+            for (var x = this._mc.startX, lenX = this._mc.startX + this._mc.maxX; x < lenX; x++)
             {
-                this._mc.tx = Math.floor(this._mc.tx);
+                var tile = null;
 
-                if (this.debugFill)
+                if (x < 0 && this.wrap)
                 {
-                    this.context.fillRect(this._mc.tx, this._mc.ty, this._mc.cw, this._mc.ch);
+                    tile = this._column[x + this.map.width];
+                }
+                else if (x >= this.map.width && this.wrap)
+                {
+                    tile = this._column[x - this.map.width];
+                }
+                else if (this._column[x])
+                {
+                    tile = this._column[x];
                 }
 
-                this.context.beginPath();
-
-                if (tile.faceTop)
+                if (tile && (tile.faceTop || tile.faceBottom || tile.faceLeft || tile.faceRight))
                 {
-                    this.context.moveTo(this._mc.tx, this._mc.ty);
-                    this.context.lineTo(this._mc.tx + this._mc.cw, this._mc.ty);
+                    this._mc.tx = Math.floor(this._mc.tx);
+
+                    if (this.debugFill)
+                    {
+                        this.context.fillRect(this._mc.tx, this._mc.ty, this._mc.cw, this._mc.ch);
+                    }
+
+                    this.context.beginPath();
+
+                    if (tile.faceTop)
+                    {
+                        this.context.moveTo(this._mc.tx, this._mc.ty);
+                        this.context.lineTo(this._mc.tx + this._mc.cw, this._mc.ty);
+                    }
+
+                    if (tile.faceBottom)
+                    {
+                        this.context.moveTo(this._mc.tx, this._mc.ty + this._mc.ch);
+                        this.context.lineTo(this._mc.tx + this._mc.cw, this._mc.ty + this._mc.ch);
+                    }
+
+                    if (tile.faceLeft)
+                    {
+                        this.context.moveTo(this._mc.tx, this._mc.ty);
+                        this.context.lineTo(this._mc.tx, this._mc.ty + this._mc.ch);
+                    }
+
+                    if (tile.faceRight)
+                    {
+                        this.context.moveTo(this._mc.tx + this._mc.cw, this._mc.ty);
+                        this.context.lineTo(this._mc.tx + this._mc.cw, this._mc.ty + this._mc.ch);
+                    }
+
+                    this.context.stroke();
                 }
 
-                if (tile.faceBottom)
-                {
-                    this.context.moveTo(this._mc.tx, this._mc.ty + this._mc.ch);
-                    this.context.lineTo(this._mc.tx + this._mc.cw, this._mc.ty + this._mc.ch);
-                }
+                this._mc.tx += this.map.tileWidth;
 
-                if (tile.faceLeft)
-                {
-                    this.context.moveTo(this._mc.tx, this._mc.ty);
-                    this.context.lineTo(this._mc.tx, this._mc.ty + this._mc.ch);
-                }
-
-                if (tile.faceRight)
-                {
-                    this.context.moveTo(this._mc.tx + this._mc.cw, this._mc.ty);
-                    this.context.lineTo(this._mc.tx + this._mc.cw, this._mc.ty + this._mc.ch);
-                }
-
-                this.context.stroke();
             }
-
-            this._mc.tx += this.map.tileWidth;
-
         }
 
         this._mc.tx = this._mc.dx;
@@ -687,27 +733,10 @@ Object.defineProperty(Phaser.TilemapLayer.prototype, "scrollX", {
 
     set: function (value) {
 
-        if (value !== this._mc.x && value >= 0 && this.layer.widthInPixels > this.width)
+        if (value !== this._mc.x)
         {
             this._mc.x = value;
-
-            if (this._mc.x > (this.layer.widthInPixels - this.width))
-            {
-                this._mc.x = this.layer.widthInPixels - this.width;
-            }
-
             this._mc.startX = this.game.math.floor(this._mc.x / this.map.tileWidth);
-
-            if (this._mc.startX < 0)
-            {
-                this._mc.startX = 0;
-            }
-
-            if (this._mc.startX + this._mc.maxX > this.layer.width)
-            {
-                this._mc.startX = this.layer.width - this._mc.maxX;
-            }
-
             this.dirty = true;
         }
 
@@ -727,27 +756,10 @@ Object.defineProperty(Phaser.TilemapLayer.prototype, "scrollY", {
 
     set: function (value) {
 
-        if (value !== this._mc.y && value >= 0 && this.layer.heightInPixels > this.height)
+        if (value !== this._mc.y)
         {
             this._mc.y = value;
-
-            if (this._mc.y > (this.layer.heightInPixels - this.height))
-            {
-                this._mc.y = this.layer.heightInPixels - this.height;
-            }
-
             this._mc.startY = this.game.math.floor(this._mc.y / this.map.tileHeight);
-
-            if (this._mc.startY < 0)
-            {
-                this._mc.startY = 0;
-            }
-
-            if (this._mc.startY + this._mc.maxY > this.layer.height)
-            {
-                this._mc.startY = this.layer.height - this._mc.maxY;
-            }
-
             this.dirty = true;
         }
 

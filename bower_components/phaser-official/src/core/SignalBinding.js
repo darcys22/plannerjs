@@ -1,21 +1,17 @@
 /**
+* @author       Miller Medeiros http://millermedeiros.github.com/js-signals/
 * @author       Richard Davey <rich@photonstorm.com>
 * @copyright    2014 Photon Storm Ltd.
 * @license      {@link https://github.com/photonstorm/phaser/blob/master/license.txt|MIT License}
 */
 
 /**
-* Phaser.SignalBinding
-*
 * Object that represents a binding between a Signal and a listener function.
-* This is an internal constructor and shouldn't be called by regular users.
+* This is an internal constructor and shouldn't be created directly.
 * Inspired by Joa Ebert AS3 SignalBinding and Robert Penner's Slot classes.
-*
+* 
 * @class Phaser.SignalBinding
-* @name SignalBinding
-* @author Miller Medeiros http://millermedeiros.github.com/js-signals/
 * @constructor
-* @inner
 * @param {Phaser.Signal} signal - Reference to Signal object that listener is currently bound to.
 * @param {function} listener - Handler function bound to the signal.
 * @param {boolean} isOnce - If binding should be executed just once.
@@ -38,7 +34,6 @@ Phaser.SignalBinding = function (signal, listener, isOnce, listenerContext, prio
 
     /**
     * @property {object|undefined|null} context - Context on which listener will be executed (object that should represent the `this` variable inside listener function).
-    * @memberof SignalBinding.prototype
     */
     this.context = listenerContext;
 
@@ -126,7 +121,7 @@ Phaser.SignalBinding.prototype = {
 
     /**
     * @method Phaser.SignalBinding#getListener
-    * @return {Function} Handler function bound to the signal.
+    * @return {function} Handler function bound to the signal.
     */
     getListener: function () {
         return this._listener;
@@ -134,15 +129,15 @@ Phaser.SignalBinding.prototype = {
 
     /**
     * @method Phaser.SignalBinding#getSignal
-    * @return {Signal} Signal that listener is currently bound to.
+    * @return {Phaser.Signal} Signal that listener is currently bound to.
     */
     getSignal: function () {
         return this._signal;
     },
 
     /**
-    * @method Phaser.SignalBinding#_destroy
     * Delete instance properties
+    * @method Phaser.SignalBinding#_destroy
     * @private
     */
     _destroy: function () {

@@ -1,4 +1,5 @@
 'use strict';
+var Helpers = require('../prefabs/helpers');
 
 var Shift = function(ctx, hour) {
   //var idCount = 1;
@@ -8,10 +9,11 @@ var Shift = function(ctx, hour) {
     this.id = 1 //idCount++;
     this.ctx = ctx;
     this.height = this.addShiftGrid();
+    this.createSprite();
   //};  
 };
 
-Shift.prototype = Object.create(Phaser.Sprite.prototype);
+//Shift.prototype = Object.create(Phaser.Sprite.prototype);
 Shift.prototype.constructor = Shift;
 
 Shift.prototype.update = function() {
@@ -21,11 +23,14 @@ Shift.prototype.update = function() {
 };
 
 Shift.shiftArray = [];
+Shift.SHIFT_SIZE = 71;
+Shift.SHIFT_HEIGHT = 40;
 
 Shift.prototype.createSprite = function() {
-  var bmd = this.ctx.game.add.bitmapData(this.position/2 * SHIFT_SIZE, SHIFT_HEIGHT);
+  var bmd = this.ctx.game.add.bitmapData(this.position/2 * Shift.SHIFT_SIZE, Shift.SHIFT_HEIGHT);
   bmd.context.fillStyle = 'rgba(255, 0, 0, 0.3)';
-  helpers.roundRect(bmd.ctx, 0, 0, bmd.width, bmd.height, 5, true);
+  debugger;
+  Helpers.roundRect(bmd.ctx, 0, 0, bmd.width, bmd.height, 5, true);
   Phaser.Sprite.call(this, this.ctx.game, this.xpos,this.ypos,bmd);
 
   //this.inputEnabled = true;
@@ -41,10 +46,10 @@ Shift.prototype.createSprite = function() {
 };
 
 Shift.prototype.ypos = function() {
-  return game.height - GameState.prototype.floor.height - (GameState.prototype.SHIFT_HEIGHT * this.height)
+  return this.ctx.game.height - 90 - (Shift.SHIFT_HEIGHT * this.height)
 };
 Shift.prototype.xpos = function() {
-  return (this.position - GameState.prototype.scrollStart) * (GameState.prototype.SHIFT_SIZE / 2)
+  return (this.position - this.ctx.scrollStart) * (Shift.SHIFT_SIZE / 2)
 };
 
 //takes a shift, adds it to the shiftgrid
@@ -53,9 +58,8 @@ Shift.prototype.addShiftGrid = function() {
   if (position == -1) {
     Shift.concatArr(Shift.shiftArray, this);
     return Shift.shiftArray.length;
-  Shift}
-  else {
-    Shift.ShiftArray[position] = Shift.addShiftArray(Shift.ShiftArray[position], this)
+  } else {
+    Shift.shiftArray[position] = Shift.addShiftArray(Shift.shiftArray[position], this)
   }
   return position;
 };

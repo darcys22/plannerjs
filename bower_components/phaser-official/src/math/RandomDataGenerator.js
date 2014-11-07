@@ -7,15 +7,13 @@
 */
 
 /**
-* Phaser.RandomDataGenerator constructor.
-*
-* @class Phaser.RandomDataGenerator
-* @classdesc An extremely useful repeatable random data generator. Access it via Phaser.Game.rnd
+* An extremely useful repeatable random data generator.
 * Based on Nonsense by Josh Faul https://github.com/jocafa/Nonsense.
 * Random number generator from http://baagoe.org/en/wiki/Better_random_numbers_for_javascript
 *
+* @class Phaser.RandomDataGenerator
 * @constructor
-* @param {array} seeds
+* @param {array} [seeds] - An array of values to use as the seed.
 */
 Phaser.RandomDataGenerator = function (seeds) {
 
@@ -53,6 +51,7 @@ Phaser.RandomDataGenerator.prototype = {
 
     /**
     * Private random helper.
+    *
     * @method Phaser.RandomDataGenerator#rnd
     * @private
     * @return {number}
@@ -100,9 +99,10 @@ Phaser.RandomDataGenerator.prototype = {
 
     /**
     * Internal method that creates a seed hash.
+    *
     * @method Phaser.RandomDataGenerator#hash
-    * @param {Any} data
     * @private
+    * @param {Any} data
     * @return {number} hashed value.
     */
     hash: function (data) {
@@ -128,29 +128,38 @@ Phaser.RandomDataGenerator.prototype = {
 
     /**
     * Returns a random integer between 0 and 2^32.
+    *
     * @method Phaser.RandomDataGenerator#integer
     * @return {number} A random integer between 0 and 2^32.
     */
     integer: function() {
+
         return this.rnd.apply(this) * 0x100000000;// 2^32
+
     },
 
     /**
     * Returns a random real number between 0 and 1.
+    *
     * @method Phaser.RandomDataGenerator#frac
     * @return {number} A random real number between 0 and 1.
     */
     frac: function() {
-        return this.rnd.apply(this) + (this.rnd.apply(this) * 0x200000 | 0) * 1.1102230246251565e-16;// 2^-53
+
+        return this.rnd.apply(this) + (this.rnd.apply(this) * 0x200000 | 0) * 1.1102230246251565e-16;   // 2^-53
+
     },
 
     /**
     * Returns a random real number between 0 and 2^32.
+    *
     * @method Phaser.RandomDataGenerator#real
     * @return {number} A random real number between 0 and 2^32.
     */
     real: function() {
+
         return this.integer() + this.frac();
+
     },
 
     /**
@@ -162,11 +171,29 @@ Phaser.RandomDataGenerator.prototype = {
     * @return {number} A random number between min and max.
     */
     integerInRange: function (min, max) {
-        return Math.round(this.realInRange(min, max));
+
+        return Math.floor(this.realInRange(0, max - min + 1) + min);
+
+    },
+
+    /**
+    * Returns a random integer between and including min and max.
+    * This method is an alias for RandomDataGenerator.integerInRange.
+    *
+    * @method Phaser.RandomDataGenerator#between
+    * @param {number} min - The minimum value in the range.
+    * @param {number} max - The maximum value in the range.
+    * @return {number} A random number between min and max.
+    */
+    between: function (min, max) {
+
+        return this.integerInRange(min, max);
+
     },
 
     /**
     * Returns a random real number between min and max.
+    *
     * @method Phaser.RandomDataGenerator#realInRange
     * @param {number} min - The minimum value in the range.
     * @param {number} max - The maximum value in the range.
@@ -180,15 +207,19 @@ Phaser.RandomDataGenerator.prototype = {
 
     /**
     * Returns a random real number between -1 and 1.
+    *
     * @method Phaser.RandomDataGenerator#normal
     * @return {number} A random real number between -1 and 1.
     */
     normal: function () {
+
         return 1 - 2 * this.frac();
+
     },
 
     /**
     * Returns a valid RFC4122 version4 ID hex string from https://gist.github.com/1308368
+    *
     * @method Phaser.RandomDataGenerator#uuid
     * @return {string} A valid RFC4122 version4 ID hex string
     */
@@ -207,42 +238,54 @@ Phaser.RandomDataGenerator.prototype = {
 
     /**
     * Returns a random member of `array`.
+    *
     * @method Phaser.RandomDataGenerator#pick
     * @param {Array} ary - An Array to pick a random member of.
     * @return {any} A random member of the array.
     */
     pick: function (ary) {
+
         return ary[this.integerInRange(0, ary.length - 1)];
+
     },
 
     /**
     * Returns a random member of `array`, favoring the earlier entries.
+    *
     * @method Phaser.RandomDataGenerator#weightedPick
     * @param {Array} ary - An Array to pick a random member of.
     * @return {any} A random member of the array.
     */
     weightedPick: function (ary) {
+
         return ary[~~(Math.pow(this.frac(), 2) * (ary.length - 1))];
+
     },
 
     /**
     * Returns a random timestamp between min and max, or between the beginning of 2000 and the end of 2020 if min and max aren't specified.
+    *
     * @method Phaser.RandomDataGenerator#timestamp
     * @param {number} min - The minimum value in the range.
     * @param {number} max - The maximum value in the range.
     * @return {number} A random timestamp between min and max.
     */
     timestamp: function (min, max) {
+
         return this.realInRange(min || 946684800000, max || 1577862000000);
+
     },
 
     /**
     * Returns a random angle between -180 and 180.
+    *
     * @method Phaser.RandomDataGenerator#angle
     * @return {number} A random number between -180 and 180.
     */
     angle: function() {
+
         return this.integerInRange(-180, 180);
+
     }
 
 };

@@ -5,8 +5,9 @@
 */
 
 /**
+* If you need more fine-grained control over the handling of specific keys you can create and use Phaser.Key objects.
+* 
 * @class Phaser.Key
-* @classdesc If you need more fine-grained control over the handling of specific keys you can create and use Phaser.Key objects.
 * @constructor
 * @param {Phaser.Game} game - Current game instance.
 * @param {number} keycode - The key code this Key is responsible for.
@@ -17,6 +18,12 @@ Phaser.Key = function (game, keycode) {
     * @property {Phaser.Game} game - A reference to the currently running game.
     */
     this.game = game;
+
+    /**
+    * @property {boolean} enabled - An enabled key processes its update and dispatches events. You can toggle this at run-time to disable a key without deleting it.
+    * @default
+    */
+    this.enabled = true;
 
     /**
     * @property {object} event - Stores the most recent DOM event.
@@ -110,6 +117,8 @@ Phaser.Key.prototype = {
 
     update: function () {
 
+        if (!this.enabled) { return; }
+
         if (this.isDown)
         {
             this.duration = this.game.time.now - this.timeDown;
@@ -130,6 +139,8 @@ Phaser.Key.prototype = {
     * @protected
     */
     processKeyDown: function (event) {
+
+        if (!this.enabled) { return; }
 
         this.event = event;
 
@@ -160,6 +171,8 @@ Phaser.Key.prototype = {
     */
     processKeyUp: function (event) {
 
+        if (!this.enabled) { return; }
+
         this.event = event;
 
         if (this.isUp)
@@ -177,42 +190,55 @@ Phaser.Key.prototype = {
     },
 
     /**
-    * Resets the state of this Key.
+    * Resets the state of this Key. This sets isDown to false, isUp to true, resets the time to be the current time and clears any callbacks
+    * associated with the onDown and onUp events and nulls the onHoldCallback if set.
     *
     * @method Phaser.Key#reset
+    * @param {boolean} [hard=true] - A soft reset won't reset any events or callbacks that are bound to this Key. A hard reset will.
     */
-    reset: function () {
+    reset: function (hard) {
+
+        if (typeof hard === 'undefined') { hard = true; }
 
         this.isDown = false;
         this.isUp = true;
         this.timeUp = this.game.time.now;
-        this.duration = this.game.time.now - this.timeDown;
+        this.duration = 0;
+        this.enabled = true;
+
+        if (hard)
+        {
+            this.onDown.removeAll();
+            this.onUp.removeAll();
+            this.onHoldCallback = null;
+            this.onHoldContext = null;
+        }
 
     },
 
     /**
-    * Returns the "just pressed" state of the Key. Just pressed is considered true if the key was pressed down within the duration given (default 250ms)
+    * Returns the "just pressed" state of the Key. Just pressed is considered true if the key was pressed down within the duration given.
     * @method Phaser.Key#justPressed
-    * @param {number} [duration=250] - The duration below which the key is considered as being just pressed.
+    * @param {number} [duration=50] - The duration below which the key is considered as being just pressed.
     * @return {boolean} True if the key is just pressed otherwise false.
     */
     justPressed: function (duration) {
 
-        if (typeof duration === "undefined") { duration = 2500; }
+        if (typeof duration === "undefined") { duration = 50; }
 
         return (this.isDown && this.duration < duration);
 
     },
 
     /**
-    * Returns the "just released" state of the Key. Just released is considered as being true if the key was released within the duration given (default 250ms)
+    * Returns the "just released" state of the Key. Just released is considered as being true if the key was released within the duration given.
     * @method Phaser.Key#justReleased
-    * @param {number} [duration=250] - The duration below which the key is considered as being just released.
+    * @param {number} [duration=50] - The duration below which the key is considered as being just released.
     * @return {boolean} True if the key is just released otherwise false.
     */
     justReleased: function (duration) {
 
-        if (typeof duration === "undefined") { duration = 2500; }
+        if (typeof duration === "undefined") { duration = 50; }
 
         return (!this.isDown && ((this.game.time.now - this.timeUp) < duration));
 
