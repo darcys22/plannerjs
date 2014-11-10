@@ -113,10 +113,10 @@ Shift.prototype.createSprite = function() {
 };
 
 Shift.prototype.ypos = function() {
-  return this.ctx.game.height - 90 - (Shift.SHIFT_HEIGHT * (this.gridHeight - 1))
+  return this.ctx.game.height - 90 - (Shift.SHIFT_HEIGHT * this.gridHeight );
 };
 Shift.prototype.xpos = function() {
-  return (this.position - this.ctx.scrollStart) * (Shift.SHIFT_SIZE / 2)
+  return (this.position - this.ctx.scrollStart) * (Shift.SHIFT_SIZE / 2);
 };
 
 //takes a shift, adds it to the shiftgrid
@@ -124,7 +124,7 @@ Shift.prototype.addShiftGrid = function() {
   var position = Shift.checkGrid(this);
   if (position == -1) {
     Shift.concatArr(Shift.shiftArray, this);
-    return Shift.shiftArray.length;
+    return (Shift.shiftArray.length - 1);
   } else {
     Shift.shiftArray[position] = Shift.addShiftArray(Shift.shiftArray[position], this)
   }
