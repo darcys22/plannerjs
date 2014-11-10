@@ -135,7 +135,7 @@ Shift.prototype.addShiftGrid = function() {
 Shift.checkGrid = function(shift) {
  if (Shift.shiftArray.length == 0) return -1;
  return Shift.shiftArray.findIndex(function(x) {
- x.slice(shift.position, shift.position + shift.length).every(function(i) { i == 0 })
+ return x.slice(shift.position, shift.position + shift.length).every(function(i) { return i == 0 })
  });
 }
 
