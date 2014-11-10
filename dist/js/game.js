@@ -71,7 +71,7 @@ var Helpers = require('../prefabs/helpers');
 var Shift = function(ctx, hour) {
   //var idCount = 1;
   //return function (ctx, hour) {
-    this.position = hour*2;
+    this.position = (hour * 2);
     this.length = 8;
     this.id = 1 //idCount++;
     this.ctx = ctx;
@@ -94,10 +94,11 @@ Shift.SHIFT_SIZE = 71;
 Shift.SHIFT_HEIGHT = 40;
 
 Shift.prototype.createSprite = function() {
-  //var bmd = this.ctx.game.add.bitmapData(this.position/2 * Shift.SHIFT_SIZE, Shift.SHIFT_HEIGHT);
-  //bmd.context.fillStyle = 'rgba(255, 0, 0, 0.3)';
-  //Helpers.RoundRect(bmd.ctx, 0, 0, bmd.width, bmd.height, 5, true);
-  Phaser.Sprite.call(this, this.ctx.game, this.xpos,this.ypos,'clear');
+  var bmd = this.ctx.game.add.bitmapData(this.length/2 * Shift.SHIFT_SIZE, Shift.SHIFT_HEIGHT);
+  bmd.context.fillStyle = 'rgba(255, 0, 0, 0.3)';
+  Helpers.RoundRect(bmd.ctx, 0, 0, bmd.width, bmd.height, 5, true);
+  Phaser.Sprite.call(this, this.ctx.game, this.xpos(),this.ypos(),bmd);
+  this.ctx.game.add.existing(this);
 
   //this.inputEnabled = true;
   //this.input.enableDrag();
@@ -112,7 +113,7 @@ Shift.prototype.createSprite = function() {
 };
 
 Shift.prototype.ypos = function() {
-  return this.ctx.game.height - 90 - (Shift.SHIFT_HEIGHT * this.height)
+  return this.ctx.game.height - 90 - (Shift.SHIFT_HEIGHT * (this.gridHeight - 1))
 };
 Shift.prototype.xpos = function() {
   return (this.position - this.ctx.scrollStart) * (Shift.SHIFT_SIZE / 2)
@@ -194,6 +195,7 @@ var Helpers = require('../prefabs/helpers');
       this.game.stage.backgroundColor = 0x333333;
       this.shiftGrid = this.game.add.group();
       this.input.justReleasedRate = 25;
+      this.scrollStart = 0;
 
       this.ruler();
       this.buttons();

@@ -9,6 +9,7 @@ var Helpers = require('../prefabs/helpers');
       this.game.stage.backgroundColor = 0x333333;
       this.shiftGrid = this.game.add.group();
       this.input.justReleasedRate = 25;
+      this.scrollStart = 0;
 
       this.ruler();
       this.buttons();
