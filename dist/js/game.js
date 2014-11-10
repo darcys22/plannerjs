@@ -75,12 +75,12 @@ var Shift = function(ctx, hour) {
     this.length = 8;
     this.id = 1 //idCount++;
     this.ctx = ctx;
-    this.height = this.addShiftGrid();
+    this.gridHeight = this.addShiftGrid();
     this.createSprite();
   //};  
 };
 
-//Shift.prototype = Object.create(Phaser.Sprite.prototype);
+Shift.prototype = Object.create(Phaser.Sprite.prototype);
 Shift.prototype.constructor = Shift;
 
 Shift.prototype.update = function() {
@@ -94,11 +94,10 @@ Shift.SHIFT_SIZE = 71;
 Shift.SHIFT_HEIGHT = 40;
 
 Shift.prototype.createSprite = function() {
-  var bmd = this.ctx.game.add.bitmapData(this.position/2 * Shift.SHIFT_SIZE, Shift.SHIFT_HEIGHT);
-  bmd.context.fillStyle = 'rgba(255, 0, 0, 0.3)';
-  debugger;
-  Helpers.roundRect(bmd.ctx, 0, 0, bmd.width, bmd.height, 5, true);
-  Phaser.Sprite.call(this, this.ctx.game, this.xpos,this.ypos,bmd);
+  //var bmd = this.ctx.game.add.bitmapData(this.position/2 * Shift.SHIFT_SIZE, Shift.SHIFT_HEIGHT);
+  //bmd.context.fillStyle = 'rgba(255, 0, 0, 0.3)';
+  //Helpers.RoundRect(bmd.ctx, 0, 0, bmd.width, bmd.height, 5, true);
+  Phaser.Sprite.call(this, this.ctx.game, this.xpos,this.ypos,'clear');
 
   //this.inputEnabled = true;
   //this.input.enableDrag();
@@ -136,7 +135,7 @@ Shift.checkGrid = function(shift) {
  if (Shift.shiftArray.length == 0) return -1;
  return Shift.shiftArray.findIndex(function(x) {
  x.slice(shift.position, shift.position + shift.length).every(function(i) { i == 0 })
- }.first);
+ });
 }
 
 //creates a new empty single dimension array, then puts the shifts into it
