@@ -4,7 +4,6 @@ var Helpers = require('../prefabs/helpers');
 var Shift = function(ctx, hour, length) {
   //var idCount = 1;
   //return function (ctx, hour) {
-  debugger;
     this.position = (hour * 2);
     this.length = (typeof length === "undefined") ? 8 : length;
     this.id = 1 //idCount++;
@@ -67,7 +66,7 @@ Shift.prototype.addShiftGrid = function() {
 
 Shift.prototype.destroy = function() {
   Shift.clearGrid(this.gridHeight, this.position, this.length);
-  return Sprite.prototype.destroy.call(this);
+  return Phaser.Sprite.prototype.destroy.call(this);
 };
 
 //Goes through the shift grid and clears it to a zero
@@ -107,8 +106,7 @@ Shift.addShiftArray = function(arr, shift) {
 Shift.prototype.startDrag = function(sprite, pointer) {
 };
 Shift.prototype.stopDrag = function(sprite, pointer) {
-  debugger;
-  var hour = pointer.x/71/2;
+  var hour = sprite.x/71/2;
   var shift = new Shift(sprite.ctx, hour, sprite.length);
   sprite.ctx.shiftGrid.add(shift);
   sprite.destroy(true);
