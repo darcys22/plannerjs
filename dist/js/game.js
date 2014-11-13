@@ -69,15 +69,12 @@ module.exports = Helpers;
 var Helpers = require('../prefabs/helpers');
 
 var Shift = function(ctx, hour, length) {
-  //var idCount = 1;
-  //return function (ctx, hour) {
-    this.position = (hour * 2);
+    this.plc = (hour * 2);
     this.length = (typeof length === "undefined") ? 8 : length;
-    this.id = 1 //idCount++;
+    this.id = Shift.idCount++;
     this.ctx = ctx;
     this.gridHeight = this.addShiftGrid();
     this.createSprite();
-  //};  
 };
 
 Shift.prototype = Object.create(Phaser.Sprite.prototype);
@@ -89,6 +86,7 @@ Shift.prototype.update = function() {
   
 };
 
+Shift.idCount = 1;
 Shift.shiftArray = [];
 Shift.SHIFT_SIZE = 71;
 Shift.SHIFT_HEIGHT = 40;
@@ -116,7 +114,7 @@ Shift.prototype.ypos = function() {
   return this.ctx.game.height - 90 - (Shift.SHIFT_HEIGHT * this.gridHeight );
 };
 Shift.prototype.xpos = function() {
-  return (this.position - this.ctx.scrollStart) * (Shift.SHIFT_SIZE / 2);
+  return (this.plc - this.ctx.scrollStart) * (Shift.SHIFT_SIZE / 2);
 };
 
 //takes a shift, adds it to the shiftgrid
@@ -132,7 +130,7 @@ Shift.prototype.addShiftGrid = function() {
 };
 
 Shift.prototype.destroy = function() {
-  Shift.clearGrid(this.gridHeight, this.position, this.length);
+  Shift.clearGrid(this.gridHeight, this.plc, this.length);
   return Phaser.Sprite.prototype.destroy.call(this);
 };
 
@@ -150,7 +148,7 @@ Shift.checkGrid = function(shift, search) {
  search = (typeof search === "undefined") ? 0 : search;
  if (Shift.shiftArray.length == 0) return -1;
  return Shift.shiftArray.findIndex(function(x) {
- return x.slice(shift.position, shift.position + shift.length).every(function(i) { return i == search })
+ return x.slice(shift.plc, shift.plc + shift.length).every(function(i) { return i == search })
  });
 };
 
@@ -163,7 +161,7 @@ Shift.concatArr = function(arr, shift) {
 
 // Given a single dimension array, go through it and add the shifts id to the hours time position
 Shift.addShiftArray = function(arr, shift) {
-  for (var i = shift.position; i < shift.position + shift.length; i++)
+  for (var i = shift.plc; i < shift.plc + shift.length; i++)
   {
     arr[i] = shift.id;
   }
@@ -173,7 +171,7 @@ Shift.addShiftArray = function(arr, shift) {
 Shift.prototype.startDrag = function(sprite, pointer) {
 };
 Shift.prototype.stopDrag = function(sprite, pointer) {
-  var hour = sprite.x/71/2;
+  var hour = sprite.x/71*2;
   var shift = new Shift(sprite.ctx, hour, sprite.length);
   sprite.ctx.shiftGrid.add(shift);
   sprite.destroy(true);
