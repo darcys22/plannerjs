@@ -68,11 +68,12 @@ module.exports = Helpers;
 'use strict';
 var Helpers = require('../prefabs/helpers');
 
-var Shift = function(ctx, hour) {
+var Shift = function(ctx, hour, length) {
   //var idCount = 1;
   //return function (ctx, hour) {
+  debugger;
     this.position = (hour * 2);
-    this.length = 8;
+    this.length = (typeof length === "undefined") ? 8 : length;
     this.id = 1 //idCount++;
     this.ctx = ctx;
     this.gridHeight = this.addShiftGrid();
@@ -100,13 +101,13 @@ Shift.prototype.createSprite = function() {
   Phaser.Sprite.call(this, this.ctx.game, this.xpos(),this.ypos(),bmd);
   this.ctx.game.add.existing(this);
 
-  //this.inputEnabled = true;
-  //this.input.enableDrag();
-  //this.input.enableSnap(SHIFT_SIZE/2, SHIFT_HEIGHT,true,false);
+  this.inputEnabled = true;
+  this.input.enableDrag();
+  this.input.enableSnap(Shift.SHIFT_SIZE/2, Shift.SHIFT_HEIGHT,true,false);
 
 
-  //this.events.onDragStart.add(this.startDrag, this);
-  //this.events.onDragStop.add(this.stopDrag, this);
+  this.events.onDragStart.add(this.startDrag, this);
+  this.events.onDragStop.add(this.stopDrag, this);
 
   var speed = (this.ctx.game.height - 90 - this.y)*2;
   this.boxTween = this.ctx.game.add.tween(this).to({ y: this.ypos }, speed, Phaser.Easing.Linear.None, true)
@@ -131,13 +132,28 @@ Shift.prototype.addShiftGrid = function() {
   return position;
 };
 
+Shift.prototype.destroy = function() {
+  Shift.clearGrid(this.gridHeight, this.position, this.length);
+  return Sprite.prototype.destroy.call(this);
+};
+
+//Goes through the shift grid and clears it to a zero
+Shift.clearGrid = function(height, start, length) {
+  for (var i = start; i < start + length; i++)
+  {
+    Shift.shiftArray[height][i] = 0;
+  }
+  return 0;
+};
+
 //Goes through the shift grid and returns the vertical array index the shift should be in (-1 if it cant fit)
-Shift.checkGrid = function(shift) {
+Shift.checkGrid = function(shift, search) {
+ search = (typeof search === "undefined") ? 0 : search;
  if (Shift.shiftArray.length == 0) return -1;
  return Shift.shiftArray.findIndex(function(x) {
- return x.slice(shift.position, shift.position + shift.length).every(function(i) { return i == 0 })
+ return x.slice(shift.position, shift.position + shift.length).every(function(i) { return i == search })
  });
-}
+};
 
 //creates a new empty single dimension array, then puts the shifts into it
 Shift.concatArr = function(arr, shift) {
@@ -158,7 +174,10 @@ Shift.addShiftArray = function(arr, shift) {
 Shift.prototype.startDrag = function(sprite, pointer) {
 };
 Shift.prototype.stopDrag = function(sprite, pointer) {
-  this.ctx.shiftAdd(sprite,pointer);
+  debugger;
+  var hour = pointer.x/71/2;
+  var shift = new Shift(sprite.ctx, hour, sprite.length);
+  sprite.ctx.shiftGrid.add(shift);
   sprite.destroy(true);
 };
 
