@@ -175,8 +175,10 @@ Shift.prototype.startDrag = function(sprite, pointer) {
 };
 Shift.prototype.stopDrag = function(sprite, pointer) {
   var hour = sprite.x/71*2;
-  var shift = new Shift(sprite.ctx, hour, sprite.length);
+  var length = sprite.length;
+  var ctx = sprite.ctx;
   sprite.destroy(true);
+  new Shift(ctx, hour, length);
 };
 
 module.exports = Shift;
@@ -227,7 +229,7 @@ var Helpers = require('../prefabs/helpers');
 //Custom Functions
     shiftAdd:  function(sprite, pointer) {
       var hour = Math.floor(this.game.input.x/71);
-      var shift = new Shift(this, hour);
+      new Shift(this, hour);
     },
 
     buttons: function() {
