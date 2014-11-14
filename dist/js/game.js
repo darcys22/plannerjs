@@ -70,11 +70,13 @@ var Helpers = require('../prefabs/helpers');
 
 var Shift = function(ctx, hour, length) {
     this.plc = (hour * 2);
+    console.log("PLC: ", this.plc);
     this.length = (typeof length === "undefined") ? 8 : length;
     this.id = Shift.idCount++;
     this.ctx = ctx;
     this.gridHeight = this.addShiftGrid();
     this.createSprite();
+    ctx.shiftGrid.add(this);
 };
 
 Shift.prototype = Object.create(Phaser.Sprite.prototype);
@@ -136,6 +138,7 @@ Shift.prototype.destroy = function() {
 
 //Goes through the shift grid and clears it to a zero
 Shift.clearGrid = function(height, start, length) {
+  console.log(height,start,length);
   for (var i = start; i < start + length; i++)
   {
     Shift.shiftArray[height][i] = 0;
@@ -173,7 +176,6 @@ Shift.prototype.startDrag = function(sprite, pointer) {
 Shift.prototype.stopDrag = function(sprite, pointer) {
   var hour = sprite.x/71*2;
   var shift = new Shift(sprite.ctx, hour, sprite.length);
-  sprite.ctx.shiftGrid.add(shift);
   sprite.destroy(true);
 };
 
@@ -226,7 +228,6 @@ var Helpers = require('../prefabs/helpers');
     shiftAdd:  function(sprite, pointer) {
       var hour = Math.floor(this.game.input.x/71);
       var shift = new Shift(this, hour);
-      this.shiftGrid.add(shift);
     },
 
     buttons: function() {

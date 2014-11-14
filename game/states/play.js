@@ -25,7 +25,6 @@ var Helpers = require('../prefabs/helpers');
     shiftAdd:  function(sprite, pointer) {
       var hour = Math.floor(this.game.input.x/71);
       var shift = new Shift(this, hour);
-      this.shiftGrid.add(shift);
     },
 
     buttons: function() {
