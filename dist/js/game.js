@@ -174,7 +174,7 @@ Shift.addShiftArray = function(arr, shift) {
 Shift.prototype.startDrag = function(sprite, pointer) {
 };
 Shift.prototype.stopDrag = function(sprite, pointer) {
-  var hour = sprite.x/71*2;
+  var hour = sprite.x/71;
   var length = sprite.length;
   var ctx = sprite.ctx;
   sprite.destroy(true);
@@ -225,6 +225,7 @@ var Helpers = require('../prefabs/helpers');
           this.shiftAdd(null,null);
         }
     },
+
 
 //Custom Functions
     shiftAdd:  function(sprite, pointer) {

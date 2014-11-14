@@ -21,6 +21,7 @@ var Helpers = require('../prefabs/helpers');
         }
     },
 
+
 //Custom Functions
     shiftAdd:  function(sprite, pointer) {
       var hour = Math.floor(this.game.input.x/71);
