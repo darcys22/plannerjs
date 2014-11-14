@@ -26,6 +26,33 @@ Shift.shiftArray = [];
 Shift.SHIFT_SIZE = 71;
 Shift.SHIFT_HEIGHT = 40;
 
+Shift.fallCheck(deletedPosition, deletedLength) {
+  var fallable = Shift.shiftArray.reduce(
+    function(array, row) {
+
+    var unique = row.filter(function(item, i, ar) { return ar.indexOf(item) === i;});
+
+    var id = unique.find( function(boxId) {
+      var box = this.ctx.shiftGrid.iterate("id", boxId, Phaser.RETURN_CHILD);
+      return (box.start >= deletedPosition) && (box.start + box.length) <= (deletedPosition + deletedLength);
+    });
+
+    if (id != -1) array.push(id);
+  }, []);
+
+  if (fallable.length > 0) { Shift.fall(fallable[0]); }
+
+};
+
+Shift.fall = function(id) {
+  var box = this.ctx.shiftGrid.iterate("id", fallable, Phaser.RETURN_CHILD);
+  var posi = box.plc;
+  var len = box.length;
+  box.moveShift(posi);
+
+  Shift.fallCheck(posi, len);
+};
+
 Shift.prototype.createSprite = function() {
   var bmd = this.ctx.game.add.bitmapData(this.length/2 * Shift.SHIFT_SIZE, Shift.SHIFT_HEIGHT);
   bmd.context.fillStyle = 'rgba(255, 0, 0, 0.3)';
@@ -108,10 +135,13 @@ Shift.prototype.startDrag = function(sprite, pointer) {
 };
 Shift.prototype.stopDrag = function(sprite, pointer) {
   var hour = sprite.x/71;
-  var length = sprite.length;
-  var ctx = sprite.ctx;
-  sprite.destroy(true);
-  new Shift(ctx, hour, length);
+  sprite.moveShift(hour);
+};
+
+Shift.prototype.moveShift = function(position) {
+  var length = this.length;
+  this.destroy(true);
+  new Shift(this.ctx, position, length);
 };
 
 module.exports = Shift;
