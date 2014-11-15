@@ -70,7 +70,6 @@ var Helpers = require('../prefabs/helpers');
 
 var Shift = function(ctx, hour, length) {
     this.plc = (hour * 2);
-    console.log("PLC: ", this.plc);
     this.length = (typeof length === "undefined") ? 8 : length;
     this.id = Shift.idCount++;
     this.ctx = ctx;
@@ -92,6 +91,35 @@ Shift.idCount = 1;
 Shift.shiftArray = [];
 Shift.SHIFT_SIZE = 71;
 Shift.SHIFT_HEIGHT = 40;
+
+Shift.fallCheck = function(deletedPosition, deletedLength, ctx) {
+  var fallable = -1;
+  var test = Shift.shiftArray.some(
+    function(row) {
+
+    var unique = row.filter(function(item, i, ar) { return ar.indexOf(item) === i;});
+
+    var id = unique.find( function(boxId) {
+      var box = ctx.shiftGrid.iterate("id", boxId, Phaser.Group.RETURN_CHILD);
+      return (box.start >= deletedPosition) && (box.start + box.length) <= (deletedPosition + deletedLength);
+    });
+
+    if (id != -1) {fallable = id};
+    return id != 1;
+  });
+
+  if (test) { Shift.fall(fallable); }
+
+};
+
+Shift.fall = function(id, ctx) {
+  var box = ctx.shiftGrid.iterate("id", fallable, Phaser.RETURN_CHILD);
+  var posi = box.plc;
+  var len = box.length;
+  box.moveShift(posi);
+
+  Shift.fallCheck(posi, len);
+};
 
 Shift.prototype.createSprite = function() {
   var bmd = this.ctx.game.add.bitmapData(this.length/2 * Shift.SHIFT_SIZE, Shift.SHIFT_HEIGHT);
@@ -133,12 +161,12 @@ Shift.prototype.addShiftGrid = function() {
 
 Shift.prototype.destroy = function() {
   Shift.clearGrid(this.gridHeight, this.plc, this.length);
+  Shift.fallCheck(this.plc, this.length, this.ctx);
   return Phaser.Sprite.prototype.destroy.call(this);
 };
 
 //Goes through the shift grid and clears it to a zero
 Shift.clearGrid = function(height, start, length) {
-  console.log(height,start,length);
   for (var i = start; i < start + length; i++)
   {
     Shift.shiftArray[height][i] = 0;
@@ -175,10 +203,13 @@ Shift.prototype.startDrag = function(sprite, pointer) {
 };
 Shift.prototype.stopDrag = function(sprite, pointer) {
   var hour = sprite.x/71;
-  var length = sprite.length;
-  var ctx = sprite.ctx;
-  sprite.destroy(true);
-  new Shift(ctx, hour, length);
+  sprite.moveShift(hour);
+};
+
+Shift.prototype.moveShift = function(position) {
+  var length = this.length;
+  this.destroy(true);
+  new Shift(this.ctx, position, length);
 };
 
 module.exports = Shift;

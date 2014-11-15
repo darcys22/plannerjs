@@ -3,7 +3,6 @@ var Helpers = require('../prefabs/helpers');
 
 var Shift = function(ctx, hour, length) {
     this.plc = (hour * 2);
-    console.log("PLC: ", this.plc);
     this.length = (typeof length === "undefined") ? 8 : length;
     this.id = Shift.idCount++;
     this.ctx = ctx;
@@ -26,26 +25,28 @@ Shift.shiftArray = [];
 Shift.SHIFT_SIZE = 71;
 Shift.SHIFT_HEIGHT = 40;
 
-Shift.fallCheck(deletedPosition, deletedLength) {
-  var fallable = Shift.shiftArray.reduce(
-    function(array, row) {
+Shift.fallCheck = function(deletedPosition, deletedLength, ctx) {
+  var fallable = -1;
+  var test = Shift.shiftArray.some(
+    function(row) {
 
     var unique = row.filter(function(item, i, ar) { return ar.indexOf(item) === i;});
 
     var id = unique.find( function(boxId) {
-      var box = this.ctx.shiftGrid.iterate("id", boxId, Phaser.RETURN_CHILD);
+      var box = ctx.shiftGrid.iterate("id", boxId, Phaser.Group.RETURN_CHILD);
       return (box.start >= deletedPosition) && (box.start + box.length) <= (deletedPosition + deletedLength);
     });
 
-    if (id != -1) array.push(id);
-  }, []);
+    if (id != -1) {fallable = id};
+    return id != 1;
+  });
 
-  if (fallable.length > 0) { Shift.fall(fallable[0]); }
+  if (test) { Shift.fall(fallable); }
 
 };
 
-Shift.fall = function(id) {
-  var box = this.ctx.shiftGrid.iterate("id", fallable, Phaser.RETURN_CHILD);
+Shift.fall = function(id, ctx) {
+  var box = ctx.shiftGrid.iterate("id", fallable, Phaser.RETURN_CHILD);
   var posi = box.plc;
   var len = box.length;
   box.moveShift(posi);
@@ -93,12 +94,12 @@ Shift.prototype.addShiftGrid = function() {
 
 Shift.prototype.destroy = function() {
   Shift.clearGrid(this.gridHeight, this.plc, this.length);
+  Shift.fallCheck(this.plc, this.length, this.ctx);
   return Phaser.Sprite.prototype.destroy.call(this);
 };
 
 //Goes through the shift grid and clears it to a zero
 Shift.clearGrid = function(height, start, length) {
-  console.log(height,start,length);
   for (var i = start; i < start + length; i++)
   {
     Shift.shiftArray[height][i] = 0;
