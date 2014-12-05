@@ -99,21 +99,25 @@ Shift.fallCheck = function(deletedPosition, deletedLength, ctx) {
 
     var unique = row.filter(function(item, i, ar) { return ar.indexOf(item) === i;});
 
+    var zero = unique.indexOf(0);
+    unique.splice(zero, 1);
+
     var id = unique.find( function(boxId) {
       var box = ctx.shiftGrid.iterate("id", boxId, Phaser.Group.RETURN_CHILD);
-      return (box.start >= deletedPosition) && (box.start + box.length) <= (deletedPosition + deletedLength);
+      debugger;
+      return (box.plc >= deletedPosition) && (box.plc + box.length) <= (deletedPosition + deletedLength);
     });
 
     if (id != -1) {fallable = id};
     return id != 1;
   });
 
-  if (test) { Shift.fall(fallable); }
+  if (test) { Shift.fall(fallable, ctx); }
 
 };
 
 Shift.fall = function(id, ctx) {
-  var box = ctx.shiftGrid.iterate("id", fallable, Phaser.RETURN_CHILD);
+  var box = ctx.shiftGrid.iterate("id", id, Phaser.RETURN_CHILD);
   var posi = box.plc;
   var len = box.length;
   box.moveShift(posi);
@@ -204,6 +208,7 @@ Shift.prototype.startDrag = function(sprite, pointer) {
 Shift.prototype.stopDrag = function(sprite, pointer) {
   var hour = sprite.x/71;
   sprite.moveShift(hour);
+  //debugger;
 };
 
 Shift.prototype.moveShift = function(position) {
