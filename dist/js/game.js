@@ -102,22 +102,23 @@ Shift.fallCheck = function(deletedPosition, deletedLength, ctx) {
     var zero = unique.indexOf(0);
     unique.splice(zero, 1);
 
-    var id = unique.find( function(boxId) {
+
+    fallable = unique.find( function(boxId) {
       var box = ctx.shiftGrid.iterate("id", boxId, Phaser.Group.RETURN_CHILD);
-      debugger;
       return (box.plc >= deletedPosition) && (box.plc + box.length) <= (deletedPosition + deletedLength);
     });
 
-    if (id != -1) {fallable = id};
-    return id != 1;
+    if (fallable && fallable != -1) { return true; }
+
   });
 
-  if (test) { Shift.fall(fallable, ctx); }
+  if (fallable && fallable != -1) { Shift.fall(fallable, ctx); }
 
 };
 
 Shift.fall = function(id, ctx) {
   var box = ctx.shiftGrid.iterate("id", id, Phaser.RETURN_CHILD);
+  debugger;
   var posi = box.plc;
   var len = box.length;
   box.moveShift(posi);
