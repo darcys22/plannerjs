@@ -27,7 +27,7 @@ Shift.SHIFT_HEIGHT = 40;
 
 Shift.fallCheck = function(deletedRow, ctx) {
   var fallable = -1;
-  var test = Shift.shiftArray.slice(deletedRow + 1).some(
+  Shift.shiftArray.slice(deletedRow + 1).some(
     function(row, current) {
 
     var unique = row.filter(function(item, i, ar) { return ar.indexOf(item) === i;});
@@ -46,7 +46,10 @@ Shift.fallCheck = function(deletedRow, ctx) {
 
   });
 
-  if (fallable && fallable != -1) { Shift.fall(fallable, ctx); }
+  if (fallable && fallable != -1) { 
+    Shift.fall(fallable, ctx);
+    Shift.fallCheck(deletedRow, ctx);
+  }
 
 };
 
