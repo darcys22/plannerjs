@@ -92,23 +92,24 @@ Shift.shiftArray = [];
 Shift.SHIFT_SIZE = 71;
 Shift.SHIFT_HEIGHT = 40;
 
-Shift.fallCheck = function(deletedPosition, deletedLength, ctx) {
+Shift.fallCheck = function(deletedRow, ctx) {
   var fallable = -1;
-  var test = Shift.shiftArray.some(
-    function(row) {
+  var test = Shift.shiftArray.slice(deletedRow + 1).some(
+    function(row, current) {
 
     var unique = row.filter(function(item, i, ar) { return ar.indexOf(item) === i;});
 
     var zero = unique.indexOf(0);
     unique.splice(zero, 1);
 
-
     fallable = unique.find( function(boxId) {
       var box = ctx.shiftGrid.iterate("id", boxId, Phaser.Group.RETURN_CHILD);
-      return (box.plc >= deletedPosition) && (box.plc + box.length) <= (deletedPosition + deletedLength);
+      return Shift.shiftArray[deletedRow].slice(box.plc,box.plc + box.length).every(function(x) { return x === 0});
     });
 
-    if (fallable && fallable != -1) { return true; }
+    if (fallable && fallable != -1) { 
+      return true; 
+    }
 
   });
 
@@ -117,13 +118,12 @@ Shift.fallCheck = function(deletedPosition, deletedLength, ctx) {
 };
 
 Shift.fall = function(id, ctx) {
-  var box = ctx.shiftGrid.iterate("id", id, Phaser.RETURN_CHILD);
-  debugger;
-  var posi = box.plc;
-  var len = box.length;
+  var box = ctx.shiftGrid.iterate("id", id, Phaser.Group.RETURN_CHILD);
+  var posi = box.plc/2;
+  var h = box.gridHeight;
   box.moveShift(posi);
 
-  Shift.fallCheck(posi, len);
+  Shift.fallCheck(h, ctx);
 };
 
 Shift.prototype.createSprite = function() {
@@ -166,7 +166,7 @@ Shift.prototype.addShiftGrid = function() {
 
 Shift.prototype.destroy = function() {
   Shift.clearGrid(this.gridHeight, this.plc, this.length);
-  Shift.fallCheck(this.plc, this.length, this.ctx);
+  Shift.fallCheck(this.gridHeight, this.ctx);
   return Phaser.Sprite.prototype.destroy.call(this);
 };
 
@@ -209,10 +209,10 @@ Shift.prototype.startDrag = function(sprite, pointer) {
 Shift.prototype.stopDrag = function(sprite, pointer) {
   var hour = sprite.x/71;
   sprite.moveShift(hour);
-  //debugger;
 };
 
 Shift.prototype.moveShift = function(position) {
+  console.log(position, this.length);
   var length = this.length;
   this.destroy(true);
   new Shift(this.ctx, position, length);
